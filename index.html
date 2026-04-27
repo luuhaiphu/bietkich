@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Khai Báo Bán Hàng Đội Biệt Kích - MWG</title>
+<link rel="icon" href="image_7.png" type="image/png">
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <style>
   :root {
@@ -34,7 +35,7 @@
   /* HEADER */
   .header { background: var(--green); color: white; display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 12px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
   .header-left { display: flex; align-items: center; gap: 12px; }
-  .header-logo { width: 32px; height: 32px; background: #ffd700; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .header-logo { width: 32px; height: 32px; background: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
   .header-stats { font-size: 13px; font-weight: 500; display: none; align-items: center; gap: 15px; }
   .header-user { background: rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 
@@ -94,6 +95,9 @@
   .badge-rejected { background: var(--red-bg); color: #721c24; }
   .manual-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--yellow-bg); border: 1px solid var(--yellow); color: #6d4c00; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; }
 
+  /* FOOTER */
+  .footer { text-align: center; font-size: 11px; color: var(--text-muted); padding: 10px 12px; margin-top: 10px; border-top: 1px solid var(--border); }
+
   /* MODAL */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding-top: 60px; overflow-y: auto; }
   .modal-overlay.hidden { display: none; }
@@ -139,7 +143,9 @@
 
 <div class="header">
   <div class="header-left">
-    <div class="header-logo">🌟</div>
+    <div class="header-logo">
+      <img src="image_7.png" alt="Logo Bách hóa XANH" style="max-width: 100%; max-height: 100%; border-radius: 50%; display: block;">
+    </div>
     <div style="font-weight: 600; letter-spacing: 0.5px;">MWG - KHAI BÁO BIỆT KÍCH</div>
     <div class="header-stats" id="adminStats">
       <span style="background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 20px;">👁‍🗨 Số người truy cập hnay: <strong id="visitCount" style="color: #ffd700;">0</strong></span>
@@ -230,6 +236,8 @@
       </table>
     </div>
   </div>
+</div><div class="footer">
+  Mọi vấn đề xin liên hệ Hải Phú - 268789
 </div>
 
 <div class="modal-overlay hidden" id="importModal">
@@ -656,6 +664,28 @@ function submitExcelImport() {
   closeModal('importModal');
   loadTable();
 }
+
+// FILE UPLOAD
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target.result;
+      const lines = text.split('\n').slice(1); // skip header
+      document.getElementById('bulkTextarea').value = lines.join('\n');
+      switchImportTab('paste');
+      parseBulk();
+    };
+    reader.readAsText(file, 'utf-8');
+  } else {
+    toast('warning','Vui lòng upload file CSV. Với Excel (.xlsx), hãy copy dữ liệu và paste vào ô Dán từ Excel.');
+  }
+}
+
+function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('dragover'); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('uploadZone').classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f){const inp=document.getElementById('fileInput');const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;handleFileUpload({target:inp});} }
 
 // ================= LỊCH SỬ THAO TÁC =================
 function logAction(action, detail) {
