@@ -3,441 +3,411 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Khai Báo Bán Hàng Đội Biệt Kích - Bách Hóa XANH</title>
-<link rel="icon" href="https://www.bachhoaxanh.com/favicon.ico" type="image/x-icon">
+<title>Khai Báo Bán Hàng Đội Biệt Kích - BHX</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     --green: #1a7a3c;
     --green-dark: #145f2e;
-    --green-light: #22a050;
     --blue: #0d6efd;
-    --blue-dark: #0b5ed7;
-    --orange: #fd7e14;
     --red: #dc3545;
     --yellow: #ffc107;
     --yellow-bg: #fff8e1;
     --green-bg: #e8f5e9;
     --red-bg: #ffebee;
-    --gray: #6c757d;
-    --gray-light: #f5f5f5;
-    --border: #dee2e6;
-    --white: #ffffff;
     --text: #212529;
     --text-muted: #6c757d;
-    --shadow: 0 2px 8px rgba(0,0,0,0.12);
-    --radius: 4px;
+    --border: #dee2e6;
+    --shadow: 0 4px 12px rgba(0,0,0,0.15);
+    --radius: 6px;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: var(--text); background: #f0f0f0; display: flex; flex-direction: column; min-height: 100vh;}
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { font-size: 13px; color: var(--text); background: #f0f0f0; overflow-x: hidden; }
+
+  /* APP WRAPPER (Để xử lý hiệu ứng blur) */
+  #appContainer { display: flex; flex-direction: column; min-height: 100vh; transition: filter 0.3s; }
+  #appContainer.blurred { filter: blur(8px); pointer-events: none; user-select: none; height: 100vh; overflow: hidden; }
+
+  /* LOGIN OVERLAY & FORCE PASS */
+  #loginOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+  .login-box { background: white; padding: 24px 32px; border-radius: 8px; width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+  .login-box h2 { text-align: center; color: var(--green); margin-bottom: 20px; font-size: 18px; }
+  .login-box .form-group { margin-bottom: 15px; }
+  .login-box label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; }
+  .login-box .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; }
+  .login-box .btn { width: 100%; padding: 10px; font-size: 14px; margin-top: 10px; background: var(--green); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+  .login-box .btn:hover { background: var(--green-dark); }
 
   /* HEADER */
-  .header { background: var(--green); color: white; display: flex; align-items: center; height: 44px; padding: 0 12px; gap: 8px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-  .header-logo { width: 32px; height: 32px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-  .header-logo img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
-  .header-title { font-weight: bold; font-size: 14px; margin-right: auto; }
-  
-  .header-stats { background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; display: none; align-items: center; gap: 6px; }
-  .header-user { background: rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .header { background: var(--green); color: white; display: flex; align-items: center; height: 48px; padding: 0 16px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+  .header-title { font-weight: bold; font-size: 16px; margin-right: auto; letter-spacing: 0.5px; }
+  .header-user { background: rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; position: relative; }
+  .header-user:hover { background: rgba(255,255,255,0.25); }
 
   /* BREADCRUMB & ROLE BAR */
-  .breadcrumb { padding: 6px 12px; font-size: 12.5px; color: #333; background: white; border-bottom: 1px solid var(--border); }
-  .breadcrumb a { color: var(--green); text-decoration: none; }
-  .role-bar { background: #fff3cd; border-bottom: 2px solid var(--yellow); padding: 6px 12px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
-  .role-bar span { font-weight: 600; }
-  .role-btn { padding: 3px 12px; border-radius: 20px; border: 1px solid; cursor: pointer; font-size: 12px; transition: all 0.2s; }
-  .role-btn.admin { border-color: #6f42c1; color: #6f42c1; }
-  .role-btn.admin.active, .role-btn.admin:hover { background: #6f42c1; color: white; }
-  .role-btn.nganhhang { border-color: var(--blue); color: var(--blue); }
-  .role-btn.nganhhang.active, .role-btn.nganhhang:hover { background: var(--blue); color: white; }
-  .role-btn.qltp { border-color: var(--green); color: var(--green); }
-  .role-btn.qltp.active, .role-btn.qltp:hover { background: var(--green); color: white; }
+  .breadcrumb { padding: 8px 16px; font-size: 13px; color: #333; background: white; border-bottom: 1px solid var(--border); }
+  .role-bar { background: #e3f2fd; border-bottom: 2px solid var(--blue); padding: 8px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: #084298; }
 
   /* MAIN & FILTER */
-  .main { padding: 10px 12px; flex: 1; }
-  .filter-area { background: white; padding: 12px; border-radius: var(--radius); margin-bottom: 8px; box-shadow: var(--shadow); }
+  .main { padding: 12px 16px; flex: 1; }
+  .filter-area { background: white; padding: 12px 16px; border-radius: var(--radius); margin-bottom: 10px; box-shadow: var(--shadow); }
   .filter-row { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
   .filter-group { display: flex; flex-direction: column; gap: 4px; }
-  .filter-group label { font-size: 12px; font-weight: 500; color: #444; }
-  .filter-group input, .filter-group select { padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12.5px; min-width: 160px; }
+  .filter-group label { font-size: 12px; font-weight: 600; color: #444; }
+  .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; min-width: 160px; }
 
   /* BUTTONS */
-  .btn { padding: 5px 14px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px; }
-  .btn-search { background: var(--green); color: white; }
-  .btn-new { background: var(--blue); color: white; }
-  .btn-export { background: #217346; color: white; }
-  .btn-import { background: #1d6fa4; color: white; }
-  .btn-link { background: none; border: none; color: var(--green); cursor: pointer; font-size: 12.5px; padding: 5px 0; text-decoration: none; }
-  .btn-link:hover { text-decoration: underline; }
+  .btn { padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
   .btn-primary { background: var(--blue); color: white; }
   .btn-secondary { background: #6c757d; color: white; }
   .btn-success { background: var(--green); color: white; }
   .btn-danger { background: var(--red); color: white; }
   .btn-warning { background: var(--yellow); color: #212529; }
-  .btn-sm { padding: 3px 8px; font-size: 12px; }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
   .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  /* ACTION BAR & TABLE */
-  .action-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  /* TABLE */
   .table-area { background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-  .table-container { overflow-x: auto; max-height: calc(100vh - 300px); overflow-y: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  thead th { background: var(--green); color: white; padding: 8px 10px; text-align: left; font-weight: 500; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
+  .table-container { overflow-x: auto; max-height: calc(100vh - 280px); overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--green); color: white; padding: 10px; text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
   tbody tr { border-bottom: 1px solid #eee; }
   tbody tr:hover { background: #f8fff9; }
-  tbody td { padding: 7px 10px; vertical-align: middle; }
-  .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  tbody td { padding: 8px 10px; vertical-align: middle; }
+  
+  .badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
   .badge-draft { background: #e9ecef; color: #495057; }
   .badge-pending { background: #fff3cd; color: #856404; }
   .badge-approved { background: var(--green-bg); color: #155724; }
   .badge-rejected { background: var(--red-bg); color: #721c24; }
-  .manual-tag { display: inline-flex; align-items: center; background: var(--yellow-bg); border: 1px solid var(--yellow); color: #6d4c00; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; }
-  .select-all-row { padding: 6px 12px; background: #fafafa; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+  .manual-tag { background: var(--yellow-bg); border: 1px solid var(--yellow); color: #6d4c00; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
 
-  /* MODALS & FORMS */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding-top: 60px; overflow-y: auto; }
+  /* MODALS */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding-top: 50px; }
   .modal-overlay.hidden { display: none; }
-  .modal { background: white; border-radius: 6px; width: 580px; max-width: 95vw; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
-  .modal-lg { width: 780px; }
-  .modal-xl { width: 980px; }
-  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
-  .modal-header h3 { font-size: 15px; font-weight: 600; color: #222; }
-  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0 4px; }
-  .modal-body { padding: 18px; max-height: 70vh; overflow-y: auto; }
-  .modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
-  
-  .form-group { margin-bottom: 14px; }
-  .form-group label { display: block; font-size: 12.5px; font-weight: 500; color: #444; margin-bottom: 4px; }
-  .form-control { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .modal { background: white; border-radius: 8px; width: 600px; max-width: 95vw; box-shadow: 0 10px 30px rgba(0,0,0,0.25); display: flex; flex-direction: column; max-height: 90vh; }
+  .modal-lg { width: 850px; }
+  .modal-xl { width: 1050px; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; margin: 0; color: var(--green); }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #999; }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: #fafafa; border-radius: 0 0 8px 8px; }
+
+  .form-control { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #444; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 
   /* SEARCHABLE DROPDOWN (QLTP) */
   .search-drop-wrap { position: relative; }
-  .search-drop-input-wrap { display: flex; gap: 0; }
-  .search-drop-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-right: none; border-radius: var(--radius) 0 0 var(--radius); font-size: 13px; }
-  .search-drop-btn { padding: 6px 10px; background: #f8f9fa; border: 1px solid var(--border); border-radius: 0 var(--radius) var(--radius) 0; cursor: pointer; font-size: 14px; color: #666; }
-  .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); max-height: 200px; overflow-y: auto; z-index: 3000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .search-drop-input-wrap { display: flex; }
+  .search-drop-input { flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
+  .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-top: none; max-height: 200px; overflow-y: auto; z-index: 3000; box-shadow: var(--shadow); }
   .dropdown-list.hidden { display: none; }
-  .dropdown-item { padding: 7px 12px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; justify-content: space-between; }
+  .dropdown-item { padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; }
   .dropdown-item:hover { background: var(--green-bg); }
-  .dropdown-item-manual { padding: 7px 12px; cursor: pointer; font-size: 12.5px; color: var(--orange); border-top: 1px solid #eee; }
-  .selected-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-  .tag-item { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 11.5px; font-weight: 500; background: var(--green-bg); color: #155724; border: 1px solid #c3e6cb;}
+  .dropdown-item-manual { padding: 8px 12px; cursor: pointer; color: var(--orange); background: #fffbf0; font-weight: 600; }
+  .selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; background: var(--green-bg); color: #155724; border: 1px solid #c3e6cb;}
   .tag-item.manual { background: var(--yellow-bg); color: #6d4c00; border: 1px solid var(--yellow); }
-  .tag-item .remove { cursor: pointer; opacity: 0.6; }
+  .tag-item .remove { cursor: pointer; font-size: 14px; }
 
-  /* TABS & UTILS */
-  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--green); margin-bottom: 14px; }
-  .tab-btn { padding: 7px 16px; background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  /* TAB & OTHERS */
+  .tabs { display: flex; border-bottom: 2px solid var(--green); margin-bottom: 15px; }
+  .tab-btn { padding: 10px 20px; background: none; border: none; font-weight: 600; cursor: pointer; color: #666; margin-bottom: -2px; border-bottom: 2px solid transparent; }
   .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
-  .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px; text-align: center; cursor: pointer; color: var(--text-muted); }
-  .upload-zone:hover { border-color: var(--blue); background: #f0f7ff; color: var(--blue); }
-  .upload-zone input[type=file] { display: none; }
   
-  .bulk-row { display: flex; gap: 8px; align-items: flex-start; padding: 4px 8px; border-radius: 3px; margin-bottom: 3px; font-size: 12px; }
-  .bulk-row.valid { background: var(--green-bg); }
-  .bulk-row.manual { background: var(--yellow-bg); }
-  .bulk-row.error { background: var(--red-bg); }
-  .bulk-summary { display: flex; gap: 12px; padding: 8px; background: #f8f9fa; border-radius: var(--radius); font-size: 12px; margin-bottom: 10px; }
+  .upload-zone { border: 2px dashed #bbb; padding: 30px; text-align: center; cursor: pointer; border-radius: 8px; background: #fafafa; }
+  .upload-zone:hover { border-color: var(--blue); background: #f0f8ff; }
+  .bulk-row { display: flex; gap: 10px; padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 12px; }
   
-  /* PRICE CONFIG */
-  .price-row { background: #f8f9fa; border-radius: var(--radius); padding: 12px; margin-bottom: 12px; border: 1px solid var(--border); }
-  .price-row-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 600; font-size: 13px; border-bottom: 1px solid #ddd; padding-bottom: 8px;}
-  .reward-type-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-  .reward-tab { padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; }
-  .reward-tab.active { background: var(--blue); color: white; border-color: var(--blue); }
-
-  /* DETAIL PANEL */
-  .detail-section { margin-bottom: 16px; }
-  .detail-section h4 { font-size: 13px; font-weight: 600; color: var(--green); border-bottom: 1px solid #e8f5e9; padding-bottom: 6px; margin-bottom: 10px; }
-  .detail-grid { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; }
-  .detail-grid dt { font-weight: 500; color: #555; font-size: 12.5px; }
-
-  /* TOAST & FOOTER */
-  .toast-container { position: fixed; top: 56px; right: 12px; z-index: 9999; display: flex; flex-direction: column; gap: 6px; }
-  .toast { padding: 10px 16px; border-radius: 4px; color: white; font-size: 13px; box-shadow: var(--shadow); min-width: 240px; display: flex; align-items: center; gap: 8px; animation: slideIn 0.3s ease; }
+  .toast-container { position: fixed; top: 60px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
+  .toast { padding: 12px 20px; border-radius: 6px; color: white; font-weight: 600; box-shadow: var(--shadow); animation: slideIn 0.3s; }
   .toast.success { background: var(--green); } .toast.error { background: var(--red); } .toast.warning { background: var(--orange); }
-  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-  
-  .footer { text-align: center; font-size: 12px; color: var(--text-muted); padding: 12px; border-top: 1px solid var(--border); background: #f8f9fa; }
-  .hidden { display: none !important; }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+  .footer { text-align: center; padding: 15px; background: #e9ecef; color: #666; font-size: 12px; margin-top: auto; }
 </style>
 </head>
 <body>
 
 <div class="toast-container" id="toastContainer"></div>
 
-<div class="header">
-  <div class="header-logo">
-    <img src="https://vinadesign.vn/uploads/images/2023/05/logo-bacchoaxanh-vinadesign-26-11-00-07.jpg" alt="BHX Logo">
+<div id="loginOverlay">
+  <div class="login-box" id="mainLoginBox">
+    <h2>🔒 ĐĂNG NHẬP HỆ THỐNG</h2>
+    <div class="form-group">
+      <label>Phân hệ truy cập</label>
+      <select id="loginRole" class="form-control" onchange="toggleLoginFields()">
+        <option value="" disabled selected>-- Chọn phân hệ --</option>
+        <option value="qltp">Quản Lý Tiên Phong (QLTP)</option>
+        <option value="nganhhang">Nhân viên Ngành Hàng</option>
+        <option value="admin">Admin Hệ Thống</option>
+      </select>
+    </div>
+    
+    <div class="form-group" id="grpLoginCode" style="display:none;">
+      <label>Mã User (VD: QLTP01, NH01, admin)</label>
+      <input type="text" id="loginCode" class="form-control" placeholder="Nhập mã nhân viên..." autocomplete="off">
+    </div>
+    
+    <div class="form-group" id="grpLoginName" style="display:none;">
+      <label>Tên hiển thị</label>
+      <input type="text" id="loginName" class="form-control" placeholder="Nhập tên thật của bạn" autocomplete="off">
+    </div>
+    
+    <div class="form-group" id="grpLoginPass" style="display:none;">
+      <label>Mật khẩu</label>
+      <input type="password" id="loginPass" class="form-control" placeholder="Nhập mật khẩu" autocomplete="off">
+    </div>
+    
+    <button class="btn btn-primary" id="btnLoginSubmit" style="display:none; width:100%; margin-top:10px;" onclick="handleLogin()">ĐĂNG NHẬP</button>
   </div>
-  <div class="header-title">MWG - KHAI BÁO BIỆT KÍCH</div>
+
+  <div class="login-box" id="forcePassBox" style="display:none;">
+    <h2 style="color:var(--orange);">⚠ ĐỔI MẬT KHẨU</h2>
+    <p style="font-size:12px; color:#666; margin-bottom:15px; text-align:center;">Bạn đang dùng mật khẩu khởi tạo mặc định. Vì lý do bảo mật, bắt buộc phải thay đổi trước khi vào hệ thống.</p>
+    <div class="form-group">
+      <label>Mật khẩu mới</label>
+      <input type="password" id="forceNewPass" class="form-control" placeholder="Mật khẩu của riêng bạn">
+    </div>
+    <div class="form-group">
+      <label>Xác nhận lại mật khẩu</label>
+      <input type="password" id="forceConfirmPass" class="form-control" placeholder="Nhập lại cho khớp">
+    </div>
+    <button class="btn btn-warning" style="width:100%; margin-top:10px;" onclick="submitForcePass()">LƯU VÀ VÀO HỆ THỐNG</button>
+  </div>
+</div>
+
+<div id="appContainer" class="blurred">
   
-  <div id="adminStats" class="header-stats">
-    <span style="color:#ffd700;">👁 Lượt xem hnay: <strong id="visitCount">0</strong></span>
+  <div class="header">
+    <div class="header-title">BHX - KHAI BÁO BIỆT KÍCH</div>
+    <div class="header-user" onclick="openChangePassModal()">
+      <span style="font-size:16px;">👤</span>
+      <span id="headerUserName">...<br><small>...</small></span>
+      <span style="font-size:10px; background:#fff; color:var(--green); padding:2px 4px; border-radius:4px; margin-left:4px;">Đổi MK</span>
+    </div>
   </div>
 
-  <div class="header-user" id="headerUser">
-    <span>👤</span>
-    <span id="headerUserName">...<br><small>...</small></span>
+  <div class="breadcrumb">
+    Trang chủ &gt;&gt; <strong>Khai Báo Bán Hàng Đội Biệt Kích</strong>
   </div>
-</div>
 
-<div class="breadcrumb">
-  <a href="#">Trang chủ</a> &gt;&gt; <strong style="color:#333;">Khai Báo Bán Hàng Đội Biệt Kích</strong>
-</div>
+  <div class="role-bar">
+    <span id="roleStatusText">Phân hệ hiện tại: ...</span>
+    <button class="btn btn-sm btn-danger" style="margin-left:auto;" onclick="logout()">Đăng xuất</button>
+  </div>
 
-<div class="role-bar">
-  <span>👥 Đổi Vai trò:</span>
-  <button class="role-btn admin" id="roleAdminBtn" onclick="requestSwitchRole('admin')">🛡 Admin</button>
-  <button class="role-btn nganhhang" id="roleNganhHangBtn" onclick="requestSwitchRole('nganhhang')">📦 Ngành Hàng</button>
-  <button class="role-btn qltp active" id="roleQLTPBtn" onclick="requestSwitchRole('qltp')">👔 QLTP</button>
-  <span style="margin-left:auto;color:#856404;font-size:11.5px;">⚠ Dữ liệu lưu nội bộ LocalStorage</span>
-</div>
-
-<div class="main">
-
-  <div class="filter-area">
-    <div class="filter-row">
-      <div class="filter-group">
-        <label>Siêu thị</label>
-        <input type="text" id="filterSieuthi" placeholder="Gõ để chọn ST..." list="sieuthiDataList" class="form-control" style="min-width:200px;">
-        <datalist id="sieuthiDataList"></datalist>
-      </div>
-      <div class="filter-group">
-        <label>Từ ngày</label>
-        <input type="date" id="filterTuNgay" class="form-control">
-      </div>
-      <div class="filter-group">
-        <label>Đến ngày</label>
-        <input type="date" id="filterDenNgay" class="form-control">
-      </div>
-      <div class="filter-group">
-        <label>Trạng thái</label>
-        <select id="filterStatus" class="form-control">
-          <option value="">-- Tất cả --</option>
-          <option value="draft">Nháp</option>
-          <option value="pending">Chờ duyệt</option>
-          <option value="approved">Đã duyệt</option>
-          <option value="rejected">Từ chối</option>
-        </select>
-      </div>
-      <div class="filter-group" style="justify-content:flex-end;">
-        <label>&nbsp;</label>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-search" onclick="loadTable()">🔍 Tìm kiếm</button>
-          <button class="btn btn-new" id="btnTaoMoi" onclick="openCreateModal()">➕ Tạo mới</button>
+  <div class="main">
+    <div class="filter-area">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Siêu thị</label>
+          <input type="text" id="filterSieuthi" placeholder="Gõ để chọn ST..." list="filterSTList" class="form-control" style="min-width:200px;">
+          <datalist id="filterSTList"></datalist>
+        </div>
+        <div class="filter-group"><label>Từ ngày</label><input type="date" id="filterTuNgay" class="form-control"></div>
+        <div class="filter-group"><label>Đến ngày</label><input type="date" id="filterDenNgay" class="form-control"></div>
+        <div class="filter-group">
+          <label>Trạng thái</label>
+          <select id="filterStatus" class="form-control">
+            <option value="">-- Tất cả --</option><option value="draft">Nháp</option><option value="pending">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option>
+          </select>
+        </div>
+        <div class="filter-group" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-search" onclick="loadTable()">🔍 Tìm kiếm</button>
+            <button class="btn btn-primary" id="btnTaoMoi" onclick="openCreateModal()">➕ Tạo mới</button>
+          </div>
         </div>
       </div>
     </div>
+
+    <div class="action-bar">
+      <button class="btn btn-export" onclick="exportExcel()">📥 Export (.xlsx)</button>
+      <button class="btn btn-import" id="btnImportKhaiBao" onclick="openImportModal('khaibao')">📤 Import Khai Báo (.xlsx)</button>
+      <a href="#" class="btn-link" id="linkTemplateKhaiBao" onclick="downloadTemplateExcel('khaibao')">⬇ Tải Form Khai Báo Mẫu</a>
+      <button class="btn btn-danger" id="btnBulkDelete" style="display:none; margin-left:10px;" onclick="bulkDeleteRecords()">🗑 Xóa các dòng đã chọn</button>
+      
+      <div style="margin-left:auto; display:flex; gap:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="openHistoryModal()">📜 Lịch Sử Log</button>
+        <div id="adminButtons" style="display:none;gap:6px;">
+          <button class="btn btn-warning btn-sm" style="color:black;" onclick="openMasterDataModal()">⚙ Quản lý Phân quyền & Master Data</button>
+        </div>
+        <div id="nganhHangButtons" style="display:none;gap:6px;">
+          <button class="btn btn-success btn-sm" onclick="bulkApprove()">✅ Duyệt đã chọn</button>
+          <button class="btn btn-danger btn-sm" onclick="bulkReject()">❌ Từ chối đã chọn</button>
+          <button class="btn btn-warning btn-sm" style="color:black;" onclick="openPriceConfigModal()">💰 Cấu hình Giá & Thưởng</button>
+          <button class="btn btn-import btn-sm" onclick="openImportModal('cauhinh')" style="background:#1d6fa4;">📤 Import Cấu Hình (.xlsx)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-area">
+      <div style="padding:8px 16px; background:#f8f9fa; border-bottom:1px solid #ddd; display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+        <label for="selectAll" style="font-weight:bold;">Chọn tất cả trang này</label>
+        <span id="selectedCount" style="color:var(--blue);"></span>
+      </div>
+      <div class="table-container">
+        <table id="mainTable">
+          <thead>
+            <tr>
+              <th style="width:40px; text-align:center;"></th>
+              <th>#</th>
+              <th>QLTP</th>
+              <th>Siêu thị</th>
+              <th>Ngày Biệt Kích</th>
+              <th>Từ giờ</th>
+              <th>Đến giờ</th>
+              <th>Mã SP</th>
+              <th>Tên Sản phẩm</th>
+              <th>Danh sách NV áp dụng</th>
+              <th>Trạng thái</th>
+              <th>Người tạo</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
-  <div class="action-bar">
-    <button class="btn btn-export" onclick="exportExcel()">📥 Export Excel (.xlsx)</button>
-    <button class="btn btn-import" id="btnImportKhaiBao" onclick="openImportModal('khaibao')">📤 Import Khai Báo (.xlsx)</button>
-    <a href="#" class="btn-link" id="linkTemplateKhaiBao" onclick="downloadTemplateExcel('khaibao')">⬇ Form Mẫu Khai Báo</a>
-    <button class="btn btn-danger" id="btnBulkDelete" style="display:none; margin-left:10px;" onclick="bulkDeleteRecords()">🗑 Xóa các dòng đã chọn</button>
-    
-    <div style="margin-left:auto; display:flex; gap:6px;">
-      <button class="btn btn-secondary btn-sm" onclick="openHistoryModal()">📜 Xem Lịch Sử</button>
-      <div id="adminButtons" style="display:none;gap:6px;">
-        <button class="btn btn-warning btn-sm" onclick="openMasterDataModal()">⚙ Quản lý Master Data</button>
-      </div>
-      <div id="nganhHangButtons" style="display:none;gap:6px;">
-        <button class="btn btn-success btn-sm" onclick="bulkApprove()">✅ Duyệt đã chọn</button>
-        <button class="btn btn-danger btn-sm" onclick="bulkReject()">❌ Từ chối đã chọn</button>
-        <button class="btn btn-warning btn-sm" onclick="openPriceConfigModal()">💰 Cấu hình giá & thưởng</button>
-        <button class="btn btn-import btn-sm" id="btnImportCauHinh" onclick="openImportModal('cauhinh')" style="background:#1d6fa4;">📤 Import Cấu Hình (.xlsx)</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="table-area">
-    <div class="select-all-row">
-      <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-      <label for="selectAll" style="font-weight: 500;">Chọn tất cả</label>
-      <span id="selectedCount" style="color:var(--blue);margin-left:8px;"></span>
-    </div>
-    <div class="table-container">
-      <table id="mainTable">
-        <thead>
-          <tr>
-            <th style="width: 40px; text-align: center;"><input type="checkbox" id="thCheckbox" onchange="toggleSelectAll()"></th>
-            <th>#</th>
-            <th>QLTP</th>
-            <th>Siêu thị</th>
-            <th>Ngày Biệt Kích</th>
-            <th>Từ giờ</th>
-            <th>Đến giờ</th>
-            <th>Mã SP</th>
-            <th>Tên Sản phẩm</th>
-            <th>Danh sách NV áp dụng</th>
-            <th>Trạng thái</th>
-            <th>Người tạo</th>
-            <th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+  <div class="footer">
+    Mọi vấn đề xin liên hệ Hải Phú - 268789
   </div>
 </div>
 
-<div class="footer">
-  Mọi vấn đề xin liên hệ Hải Phú - 268789
+<div class="modal-overlay hidden" id="changePassModal">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header"><h3>🔑 Đổi mật khẩu cá nhân</h3><button class="modal-close" onclick="closeModal('changePassModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Mật khẩu cũ</label><input type="password" id="cpOld" class="form-control"></div>
+      <div class="form-group"><label>Mật khẩu mới</label><input type="password" id="cpNew" class="form-control"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="submitChangePass()">Lưu thay đổi</button>
+      <button class="btn btn-secondary" onclick="closeModal('changePassModal')">Hủy</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay hidden" id="createModal">
   <div class="modal">
-    <div class="modal-header">
-      <h3 id="createModalTitle">Tạo mới dữ liệu Khai báo</h3>
-      <button class="modal-close" onclick="closeModal('createModal')">×</button>
-    </div>
+    <div class="modal-header"><h3 id="createModalTitle">Tạo Khai báo Biệt Kích</h3><button class="modal-close" onclick="closeModal('createModal')">×</button></div>
     <div class="modal-body">
       <input type="hidden" id="editId">
       <div class="form-group">
-        <label>Siêu thị <span class="req">*</span></label>
+        <label>Siêu thị (Chỉ hiển thị ST bạn quản lý) <span style="color:red">*</span></label>
         <div class="search-drop-wrap" id="dropSieuthi">
-          <div class="search-drop-input-wrap">
-            <input class="search-drop-input" id="inputSieuthi" type="text" placeholder="Chọn Siêu thị ..." autocomplete="off"
-              oninput="filterDrop('dropSieuthi','sieuthiList',this.value,'sieuthiSelected')" onfocus="showDrop('dropSieuthi')">
-            <button class="search-drop-btn" onclick="toggleDrop('dropSieuthi')">▾</button>
-          </div>
+          <input class="search-drop-input" id="inputSieuthi" type="text" placeholder="Gõ để tìm Siêu thị..." autocomplete="off" oninput="filterDrop('dropSieuthi','sieuthiList',this.value,'sieuthiSelected')" onfocus="showDrop('dropSieuthi')">
           <div class="dropdown-list hidden" id="dropSieuthi-list"></div>
           <div class="selected-tags" id="sieuthiSelected"></div>
         </div>
       </div>
       <div class="form-row-3">
-        <div class="form-group">
-          <label>Ngày Biệt Kích <span class="req">*</span></label>
-          <input type="date" id="formNgay" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Từ giờ</label>
-          <input type="time" id="formTuGio" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Đến giờ</label>
-          <input type="time" id="formDenGio" class="form-control">
-        </div>
+        <div class="form-group"><label>Ngày Biệt Kích <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
+        <div class="form-group"><label>Từ giờ</label><input type="time" id="formTuGio" class="form-control"></div>
+        <div class="form-group"><label>Đến giờ</label><input type="time" id="formDenGio" class="form-control"></div>
       </div>
       <div class="form-group">
-        <label>Sản phẩm <span class="req">*</span></label>
+        <label>Sản phẩm <span style="color:red">*</span></label>
         <div class="search-drop-wrap" id="dropSanpham">
-          <div class="search-drop-input-wrap">
-            <input class="search-drop-input" id="inputSanpham" type="text" placeholder="Chọn Sản phẩm ..."
-              oninput="filterDrop('dropSanpham','sanphamList',this.value,'sanphamSelected')" onfocus="showDrop('dropSanpham')" autocomplete="off">
-            <button class="search-drop-btn" onclick="toggleDrop('dropSanpham')">▾</button>
-          </div>
+          <input class="search-drop-input" id="inputSanpham" type="text" placeholder="Gõ tìm Sản phẩm..." autocomplete="off" oninput="filterDrop('dropSanpham','sanphamList',this.value,'sanphamSelected')" onfocus="showDrop('dropSanpham')">
           <div class="dropdown-list hidden" id="dropSanpham-list"></div>
           <div class="selected-tags" id="sanphamSelected"></div>
         </div>
       </div>
       <div class="form-group">
-        <label>Danh sách NV áp dụng <span class="req">*</span></label>
+        <label>DS Nhân viên áp dụng <span style="color:red">*</span></label>
         <div class="search-drop-wrap" id="dropNhanvien">
-          <div class="search-drop-input-wrap">
-            <input class="search-drop-input" id="inputNhanvien" type="text" placeholder="Chọn Danh sách NV áp dụng ..."
-              oninput="filterDrop('dropNhanvien','nhanvienList',this.value,'nhanvienSelected')" onfocus="showDrop('dropNhanvien')" autocomplete="off">
-            <button class="search-drop-btn" onclick="toggleDrop('dropNhanvien')">▾</button>
-          </div>
+          <input class="search-drop-input" id="inputNhanvien" type="text" placeholder="Gõ tìm Nhân viên..." autocomplete="off" oninput="filterDrop('dropNhanvien','nhanvienList',this.value,'nhanvienSelected')" onfocus="showDrop('dropNhanvien')">
           <div class="dropdown-list hidden" id="dropNhanvien-list"></div>
           <div class="selected-tags" id="nhanvienSelected"></div>
         </div>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" id="btnSubmitForm" onclick="submitForm()">Thêm mới</button>
-      <button class="btn btn-secondary" onclick="closeModal('createModal')">Đóng</button>
-    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="submitForm()">Lưu</button><button class="btn btn-secondary" onclick="closeModal('createModal')">Đóng</button></div>
   </div>
 </div>
 
 <div class="modal-overlay hidden" id="importModal">
   <div class="modal modal-xl">
-    <div class="modal-header">
-      <h3 id="importModalTitle">📤 Import dữ liệu từ Excel (.xlsx)</h3>
-      <button class="modal-close" onclick="closeModal('importModal')">×</button>
-    </div>
+    <div class="modal-header"><h3 id="importModalTitle">📤 Import Excel</h3><button class="modal-close" onclick="closeModal('importModal')">×</button></div>
     <div class="modal-body">
-      <div class="info-box" id="importGuideText"></div>
-      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+      <div style="background:#e8f4f8; padding:10px; border-left:4px solid var(--blue); margin-bottom:15px; font-weight:500;" id="importGuideText"></div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
         <input type="file" id="fileInput" accept=".xlsx, .xls" onchange="handleExcelUpload(event)">
-        <div style="font-size:36px;margin-bottom:8px;">📁</div>
-        <div style="font-weight:600;">Kéo thả file Excel vào đây hoặc click để chọn</div>
+        <div style="font-size:40px; color:var(--blue); margin-bottom:10px;">📄</div>
+        <div style="font-weight:bold; font-size:16px;">Kéo thả hoặc click chọn file Excel (.xlsx)</div>
       </div>
-      <div id="bulkPreview" class="bulk-preview" style="margin-top:12px;"></div>
+      <div id="bulkPreview" style="margin-top:15px;"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" id="btnImportSubmit" onclick="submitBulkImport()" disabled>✅ Tiến hành Import (<span id="importValidCount">0</span>)</button>
-      <button class="btn btn-secondary" onclick="closeModal('importModal')">Đóng</button>
-    </div>
+    <div class="modal-footer"><button class="btn btn-success" id="btnImportSubmit" onclick="submitBulkImport()" disabled>Tiến hành Import</button><button class="btn btn-secondary" onclick="closeModal('importModal')">Hủy</button></div>
   </div>
 </div>
 
 <div class="modal-overlay hidden" id="priceConfigModal">
   <div class="modal modal-xl">
-    <div class="modal-header">
-      <h3>💰 Cấu hình Giá & Hình thức thưởng</h3>
-      <button class="modal-close" onclick="closeModal('priceConfigModal')">×</button>
-    </div>
+    <div class="modal-header"><h3>💰 Cấu hình Giá & Thưởng (Ngành Hàng)</h3><button class="modal-close" onclick="closeModal('priceConfigModal')">×</button></div>
     <div class="modal-body" style="background:#f5f5f5;">
-      <div class="info-box">Cấu hình mức thưởng cho từng Đợt (Ngày, QLTP, Siêu thị, Sản phẩm). Thông tin này sẽ được áp dụng cho nhân viên theo từng ca.</div>
-      
-      <datalist id="listDataQLTP">
-        <option value="QLTP Tân"><option value="QLTP Trung"><option value="QLTP Huê"><option value="QLTP Tuấn">
-      </datalist>
+      <datalist id="listDataQLTP"></datalist>
       <datalist id="listDataSP"></datalist>
-
+      <datalist id="listDataST"></datalist>
       <div id="priceConfigList"></div>
-      <button class="btn btn-success" style="margin-top:10px;" onclick="addPriceRow()">➕ Thêm dòng cấu hình mới</button>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="addPriceRow()">➕ Thêm dòng cấu hình mới</button>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" onclick="savePriceConfig()">💾 Lưu toàn bộ cấu hình</button>
-      <button class="btn btn-secondary" onclick="closeModal('priceConfigModal')">Đóng</button>
-    </div>
+    <div class="modal-footer"><button class="btn btn-success" onclick="savePriceConfig()">💾 Lưu Cấu Hình</button><button class="btn btn-secondary" onclick="closeModal('priceConfigModal')">Đóng</button></div>
   </div>
 </div>
 
 <div class="modal-overlay hidden" id="masterDataModal">
   <div class="modal modal-xl">
-    <div class="modal-header">
-      <h3>⚙ Quản lý Master Data Nguồn</h3>
-      <button class="modal-close" onclick="closeModal('masterDataModal')">×</button>
-    </div>
+    <div class="modal-header"><h3>⚙ Quản lý Master Data & Phân quyền</h3><button class="modal-close" onclick="closeModal('masterDataModal')">×</button></div>
     <div class="modal-body">
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchMasterTab('sieuthi')">🏪 Siêu thị (<span id="countSieuthi">0</span>)</button>
+        <button class="tab-btn active" onclick="switchMasterTab('users')">👤 Quản lý User (<span id="countUsers">0</span>)</button>
+        <button class="tab-btn" onclick="switchMasterTab('sieuthi')">🏪 Siêu thị (<span id="countSieuthi">0</span>)</button>
         <button class="tab-btn" onclick="switchMasterTab('sanpham')">📦 Sản phẩm (<span id="countSanpham">0</span>)</button>
         <button class="tab-btn" onclick="switchMasterTab('nhanvien')">👥 Nhân viên (<span id="countNhanvien">0</span>)</button>
       </div>
-      <div id="masterTabSieuthi" class="tab-content active">
+      
+      <div id="masterTabUsers" class="tab-content active">
+        <div style="display:flex;gap:8px;margin-bottom:10px; align-items:center;">
+          <select id="newUserRole" class="form-control" style="width:130px;"><option value="qltp">QLTP</option><option value="nganhhang">Ngành Hàng</option></select>
+          <input type="text" id="newUserCode" class="form-control" placeholder="Mã User (QLTP01)" style="width:140px;">
+          <input type="text" id="newUserName" class="form-control" placeholder="Họ Tên" style="flex:1;">
+          <input type="text" id="newUserPass" class="form-control" placeholder="Mật khẩu" style="width:100px;">
+          <button class="btn btn-success" onclick="addMasterUser()">➕ Cấp TK</button>
+        </div>
+        <div id="masterUsersList" style="max-height:400px;overflow-y:auto;"></div>
+      </div>
+      
+      <div id="masterTabSieuthi" class="tab-content">
         <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newSieuthiCode" class="form-control" placeholder="Mã ST (VD: BHX001)" style="width:140px;">
+          <input type="text" id="newSieuthiCode" class="form-control" placeholder="Mã ST (VD: BHX001)" style="width:120px;">
           <input type="text" id="newSieuthiName" class="form-control" placeholder="Tên siêu thị" style="flex:1;">
+          <input type="text" id="newSieuthiQLTP" list="listDataQLTP" class="form-control" placeholder="Mã QLTP quản lý" style="width:150px;">
           <button class="btn btn-success" onclick="addMasterItem('sieuthi')">➕ Thêm</button>
         </div>
-        <div id="masterSieuthiList" style="max-height:300px;overflow-y:auto;"></div>
+        <div id="masterSieuthiList" style="max-height:400px;overflow-y:auto;"></div>
       </div>
+      
       <div id="masterTabSanpham" class="tab-content">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newSanphamCode" class="form-control" placeholder="Mã SP (VD: SP001)" style="width:140px;">
-          <input type="text" id="newSanphamName" class="form-control" placeholder="Tên sản phẩm" style="flex:1;">
-          <button class="btn btn-success" onclick="addMasterItem('sanpham')">➕ Thêm</button>
-        </div>
-        <div id="masterSanphamList" style="max-height:300px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" id="newSanphamCode" class="form-control" placeholder="Mã SP" style="width:140px;"><input type="text" id="newSanphamName" class="form-control" placeholder="Tên sản phẩm" style="flex:1;"><button class="btn btn-success" onclick="addMasterItem('sanpham')">➕ Thêm</button></div>
+        <div id="masterSanphamList"></div>
       </div>
       <div id="masterTabNhanvien" class="tab-content">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newNhanvienCode" class="form-control" placeholder="Mã NV (VD: NV001)" style="width:140px;">
-          <input type="text" id="newNhanvienName" class="form-control" placeholder="Tên nhân viên" style="flex:1;">
-          <button class="btn btn-success" onclick="addMasterItem('nhanvien')">➕ Thêm</button>
-        </div>
-        <div id="masterNhanvienList" style="max-height:300px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" id="newNhanvienCode" class="form-control" placeholder="Mã NV" style="width:140px;"><input type="text" id="newNhanvienName" class="form-control" placeholder="Tên nhân viên" style="flex:1;"><button class="btn btn-success" onclick="addMasterItem('nhanvien')">➕ Thêm</button></div>
+        <div id="masterNhanvienList"></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('masterDataModal')">Đóng</button></div>
@@ -446,653 +416,535 @@
 
 <div class="modal-overlay hidden" id="detailModal">
   <div class="modal modal-lg">
-    <div class="modal-header">
-      <h3>🔍 Chi tiết đợt Biệt Kích</h3>
-      <button class="modal-close" onclick="closeModal('detailModal')">×</button>
-    </div>
+    <div class="modal-header"><h3>🔍 Chi tiết đợt Biệt Kích</h3><button class="modal-close" onclick="closeModal('detailModal')">×</button></div>
     <div class="modal-body" id="detailModalBody"></div>
     <div class="modal-footer" id="detailModalFooter"></div>
   </div>
 </div>
-
 <div class="modal-overlay hidden" id="rejectModal">
-  <div class="modal" style="width:420px;">
-    <div class="modal-header">
-      <h3>❌ Từ chối</h3>
-      <button class="modal-close" onclick="closeModal('rejectModal')">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Lý do từ chối <span class="req">*</span></label>
-        <textarea id="rejectReasonInput" class="form-control" rows="3" placeholder="Nhập lý do từ chối..."></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger" onclick="confirmReject()">❌ Xác nhận từ chối</button>
-      <button class="btn btn-secondary" onclick="closeModal('rejectModal')">Hủy</button>
-    </div>
+  <div class="modal" style="width:400px;">
+    <div class="modal-header"><h3>❌ Nhập lý do từ chối</h3><button class="modal-close" onclick="closeModal('rejectModal')">×</button></div>
+    <div class="modal-body"><textarea id="rejectReasonInput" class="form-control" rows="4" placeholder="Lý do..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-danger" onclick="confirmReject()">Xác nhận</button><button class="btn btn-secondary" onclick="closeModal('rejectModal')">Hủy</button></div>
   </div>
 </div>
-
 <div class="modal-overlay hidden" id="historyModal">
   <div class="modal modal-lg">
-    <div class="modal-header">
-      <h3>📜 Lịch sử thao tác</h3>
-      <button class="modal-close" onclick="closeModal('historyModal')">×</button>
-    </div>
-    <div class="modal-body">
-      <table style="width:100%; font-size:12px; border-collapse: collapse;">
-        <thead>
-          <tr style="background:var(--green); color:white;">
-            <th style="padding:6px; text-align:left;">Thời gian</th>
-            <th style="padding:6px; text-align:left;">Người dùng</th>
-            <th style="padding:6px; text-align:left;">Vai trò</th>
-            <th style="padding:6px; text-align:left;">Thao tác</th>
-            <th style="padding:6px; text-align:left;">Chi tiết</th>
-          </tr>
-        </thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger" id="btnClearHistory" onclick="clearHistory()" style="display:none;">🗑 Xóa trắng lịch sử</button>
-      <button class="btn btn-secondary" onclick="closeModal('historyModal')">Đóng</button>
-    </div>
+    <div class="modal-header"><h3>📜 Lịch sử thao tác</h3><button class="modal-close" onclick="closeModal('historyModal')">×</button></div>
+    <div class="modal-body" style="padding:0;"><table style="width:100%; border-collapse:collapse;"><thead style="background:#f5f5f5;"><tr><th style="padding:10px;text-align:left;border-bottom:2px solid #ddd;">TG</th><th style="padding:10px;text-align:left;border-bottom:2px solid #ddd;">User</th><th style="padding:10px;text-align:left;border-bottom:2px solid #ddd;">Thao tác</th><th style="padding:10px;text-align:left;border-bottom:2px solid #ddd;">Chi tiết</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+    <div class="modal-footer"><button class="btn btn-danger" id="btnClearHistory" onclick="clearHistory()" style="display:none;">Xóa lịch sử</button><button class="btn btn-secondary" onclick="closeModal('historyModal')">Đóng</button></div>
   </div>
 </div>
 
 <script>
 // ============================================================
-// DATA STORE & LOGS
+// CORE DATABASE
 // ============================================================
 const DB = {
-  get: k => { try { return JSON.parse(localStorage.getItem('bhx_'+k) || 'null'); } catch { return null; } },
-  set: (k, v) => localStorage.setItem('bhx_'+k, JSON.stringify(v)),
+  get: k => { try { return JSON.parse(localStorage.getItem('bhx_v3_'+k) || 'null'); } catch { return null; } },
+  set: (k, v) => localStorage.setItem('bhx_v3_'+k, JSON.stringify(v))
 };
 
-let currentRole = 'qltp';
-let currentUser = ''; 
-let allDeclarations = [];
-let filteredDeclarations = [];
-let currentPage = 1; let itemsPerPage = 50; let totalPages = 1;
+// Global States
+let currentUser = null; // Object: {role, code, name, pass}
+let currentRole = null;
+let allDeclarations = []; let filteredDeclarations = [];
+let currentPage = 1; let itemsPerPage = 50;
 let selectedIds = new Set();
-let currentEditId = null; let rejectTargetId = null;
-let parsedBulkRows = [];
-let importContext = 'khaibao'; // 'khaibao' hoặc 'cauhinh'
-let priceConfigState = [];
-
+let importContext = 'khaibao';
 let dropSelections = { sieuthi: null, sanpham: null, nhanvien: [] };
-
-function logAction(action, detail) {
-  let hist = DB.get('historyLog') || [];
-  hist.unshift({ time: new Date().toLocaleString('vi-VN'), user: currentUser, role: currentRole, action: action, detail: detail });
-  if(hist.length > 200) hist.pop();
-  DB.set('historyLog', hist);
-}
+let priceConfigState = [];
+let pendingUserUpdate = null; // Dùng khi lưu tạm user chưa đổi pass
 
 // ============================================================
-// INIT
+// INITIALIZATION
 // ============================================================
 window.onload = function() {
-  initData();
-  
-  let visits = DB.get('siteVisits') || { date: new Date().toLocaleDateString(), count: 0 };
-  if(visits.date !== new Date().toLocaleDateString()) { visits = { date: new Date().toLocaleDateString(), count: 1 }; } else { visits.count++; }
-  DB.set('siteVisits', visits);
-  document.getElementById('visitCount').textContent = visits.count;
-
-  // Luôn bắt đầu bằng role QLTP
-  currentRole = 'qltp'; 
-  promptForUserName(true); // Is Initial Load
+  initSeedData();
+  document.getElementById('appContainer').classList.add('blurred');
+  document.getElementById('loginOverlay').style.display = 'flex';
 };
 
-function initData() {
-  if (!DB.get('sieuthi')) DB.set('sieuthi', [{id:'ST001', code:'ST001', name:'BHX Trần Hưng Đạo'}, {id:'ST002', code:'ST002', name:'BHX Lê Văn Sỹ'}]);
-  if (!DB.get('sanpham')) DB.set('sanpham', [{id:'SP001', code:'SP001', name:'Bia Tiger 333ml (lon)'}, {id:'SP002', code:'SP002', name:'Mì Hảo Hảo tôm chua cay'}]);
-  if (!DB.get('nhanvien')) DB.set('nhanvien', [{id:'NV001', code:'NV001', name:'Nguyễn Văn An'}, {id:'NV002', code:'NV002', name:'Trần Thị Bình'}]);
-  if (!DB.get('declarations')) {
-    DB.set('declarations', [
-      {id:'BK001', authorName: 'QLTP Tân', sieuthiId:'ST001', sieuthiName:'BHX Trần Hưng Đạo', isManualSieuthi:false, ngay:'2026-04-26', tuGio:'08:00', denGio:'20:00', sanphamCode: 'SP001', sanphamId:'SP001', sanphamName:'Bia Tiger 333ml (lon)', isManualSanpham:false, nhanvienList:[{id:'NV001',name:'Nguyễn Văn An',isManual:false},{id:'NV002',name:'Trần Thị Bình',isManual:false}], status:'approved', createdAt:'2026-04-25T10:00:00', rejectReason:''}
+function initSeedData() {
+  if (!DB.get('users')) {
+    DB.set('users', [
+      { role: 'admin', code: 'admin', name: 'Admin BHX', pass: '24122004' },
+      { role: 'qltp', code: 'QLTP01', name: 'Tân', pass: '1' },
+      { role: 'qltp', code: 'QLTP02', name: 'Trung', pass: '1' },
+      { role: 'qltp', code: 'QLTP03', name: 'Huê', pass: '1' },
+      { role: 'qltp', code: 'QLTP04', name: 'Tuấn', pass: '1' },
+      { role: 'nganhhang', code: 'NH01', name: 'Hải Phú', pass: '123' } // Data mẫu NH
     ]);
   }
+  if (!DB.get('sieuthi')) {
+    DB.set('sieuthi', [
+      {id:'ST001', code:'ST001', name:'BHX Trần Hưng Đạo', qltpCode:'QLTP01'}, 
+      {id:'ST002', code:'ST002', name:'BHX Lê Văn Sỹ', qltpCode:'QLTP01'},
+      {id:'ST003', code:'ST003', name:'BHX Nguyễn Trãi', qltpCode:'QLTP02'}
+    ]);
+  }
+  if (!DB.get('sanpham')) DB.set('sanpham', [{id:'SP001', code:'SP001', name:'Bia Tiger 333ml (lon)'}, {id:'SP002', code:'SP002', name:'Mì Hảo Hảo tôm chua cay'}]);
+  if (!DB.get('nhanvien')) DB.set('nhanvien', [{id:'NV001', code:'NV001', name:'Nguyễn Văn An'}, {id:'NV002', code:'NV002', name:'Trần Thị Bình'}]);
+  if (!DB.get('declarations')) DB.set('declarations', []);
   if (!DB.get('priceConfig')) DB.set('priceConfig', []);
 }
 
-function setDefaultDates() {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('filterTuNgay').value = today;
-  document.getElementById('filterDenNgay').value = today;
+function logAction(action, detail) {
+  let hist = DB.get('historyLog') || [];
+  hist.unshift({ time: new Date().toLocaleString('vi-VN'), user: currentUser?`${currentUser.code} - ${currentUser.name}`:'Khách', role: currentRole, action, detail });
+  if(hist.length > 200) hist.pop(); DB.set('historyLog', hist);
 }
 
 // ============================================================
-// ROLE MANAGEMENT
+// LOGIN & AUTHENTICATION (BẢO MẬT & ÉP ĐỔI PASS)
 // ============================================================
-function promptForUserName(isInitial = false) {
-  if (currentRole === 'admin') {
-    currentUser = 'Admin Hệ Thống';
-  } else {
-    let prefix = currentRole === 'qltp' ? 'QLTP ' : 'Ngành Hàng ';
-    let name = prompt(`BẢO MẬT: Vui lòng nhập tên thật của bạn để định danh thao tác (${prefix}...):`);
+function toggleLoginFields() {
+  const r = document.getElementById('loginRole').value;
+  const gc = document.getElementById('grpLoginCode');
+  const gn = document.getElementById('grpLoginName');
+  const gp = document.getElementById('grpLoginPass');
+  const btn = document.getElementById('btnLoginSubmit');
+
+  if(r) {
+    gc.style.display = 'block'; gp.style.display = 'block'; btn.style.display = 'block';
+    gn.style.display = (r === 'nganhhang') ? 'block' : 'none';
+  }
+  document.getElementById('loginCode').value = ''; document.getElementById('loginName').value = ''; document.getElementById('loginPass').value = '';
+}
+
+function handleLogin() {
+  const r = document.getElementById('loginRole').value;
+  const c = document.getElementById('loginCode').value.trim().toUpperCase();
+  const n = document.getElementById('loginName').value.trim();
+  const p = document.getElementById('loginPass').value;
+  let users = DB.get('users') || [];
+
+  if(!r) return toast('error', 'Vui lòng chọn phân hệ!');
+
+  if (r === 'admin') {
+    if (c !== 'ADMIN' || p !== '24122004') return toast('error', 'Sai thông tin Admin!');
+    currentUser = users.find(u => u.role === 'admin');
+    currentRole = r;
+    finishLoginSetup();
+  } else if (r === 'qltp') {
+    if (!c || !p) return toast('error', 'Nhập mã User và Mật khẩu!');
+    let u = users.find(x => x.role === 'qltp' && x.code === c);
     
-    if (!name || name.trim() === '') {
-      toast('error', 'Lỗi: Bắt buộc phải nhập tên để truy cập hệ thống!');
-      // Nếu là lần đầu load trang mà cancel -> gán tạm Khách, nếu đang dùng mà cancel chuyển quyền -> trả về quyền cũ
-      if(isInitial) { currentUser = prefix + 'Khách'; } 
-      else { return false; } // Trả về false để huỷ việc đổi Role
+    if (!u) return toast('error', `Tài khoản [${c}] không tồn tại trong DB của Admin!`);
+    if (u.pass !== p) return toast('error', 'Sai mật khẩu!');
+    
+    currentRole = r; pendingUserUpdate = u;
+    
+    // Ép đổi pass nếu pass là '1'
+    if(p === '1') { showForcePassBox(); } 
+    else { currentUser = u; finishLoginSetup(); }
+    
+  } else if (r === 'nganhhang') {
+    if (!c || !n || !p) return toast('error', 'Vui lòng nhập đủ Mã, Tên và Mật khẩu!');
+    let u = users.find(x => x.role === 'nganhhang' && x.code === c);
+    
+    if (!u) {
+      // Khởi tạo tự động nếu chư tồn tại
+      if(p !== '123') return toast('error', 'Tài khoản mới, mật khẩu khởi tạo phải là 123!');
+      u = { id:'U'+Date.now(), role: 'nganhhang', code: c, name: n, pass: '123' };
+      users.push(u); DB.set('users', users);
     } else {
-      currentUser = prefix + name.trim();
+      if (u.pass !== p) return toast('error', 'Sai mật khẩu!');
+      if (u.name.toLowerCase() !== n.toLowerCase()) return toast('error', 'Tên user không khớp với Mã hệ thống!');
     }
+    
+    currentRole = r; pendingUserUpdate = u;
+    
+    // Ép đổi pass nếu là '123'
+    if(p === '123') { showForcePassBox(); } 
+    else { currentUser = u; finishLoginSetup(); }
   }
-  
-  logAction('ĐĂNG NHẬP', `Truy cập phân hệ: ${currentRole.toUpperCase()}`);
-  const names = {admin:'Admin (Vận hành & KS)', nganhhang:'Phân hệ Ngành Hàng', qltp:'Phân hệ QLTP'};
-  document.getElementById('headerUserName').innerHTML = `${currentUser}<br><small>${names[currentRole]}</small>`;
-  return true;
 }
 
-function requestSwitchRole(role) {
-  if (role === currentRole) return;
-  const oldRole = currentRole;
+function showForcePassBox() {
+  document.getElementById('mainLoginBox').style.display = 'none';
+  document.getElementById('forcePassBox').style.display = 'block';
+  document.getElementById('forceNewPass').value = ''; document.getElementById('forceConfirmPass').value = '';
+}
+
+function submitForcePass() {
+  const p1 = document.getElementById('forceNewPass').value;
+  const p2 = document.getElementById('forceConfirmPass').value;
+  if(!p1 || p1.length < 3) return toast('error', 'Mật khẩu mới quá ngắn!');
+  if(p1 !== p2) return toast('error', 'Mật khẩu xác nhận không khớp!');
+  if(p1 === '1' || p1 === '123') return toast('error', 'Không được dùng lại mật khẩu mặc định!');
   
-  if (role === 'admin') {
-    const pwd = prompt('Vui lòng nhập mật khẩu Admin:');
-    if (pwd !== '24122004') { toast('error', 'Sai mật khẩu!'); return; }
-    currentRole = role;
-    promptForUserName(false);
-  } else {
-    currentRole = role;
-    const success = promptForUserName(false);
-    if(!success) {
-      currentRole = oldRole; // Rollback
-      return;
-    }
-  }
+  let users = DB.get('users') || [];
+  let idx = users.findIndex(u => u.code === pendingUserUpdate.code && u.role === pendingUserUpdate.role);
+  if(idx >= 0) { users[idx].pass = p1; pendingUserUpdate.pass = p1; DB.set('users', users); }
   
-  DB.set('role', currentRole);
-  updateRoleUI();
-  selectedIds.clear(); updateSelectedCount();
-  setDefaultDates(); loadTable();
+  currentUser = pendingUserUpdate; pendingUserUpdate = null;
+  toast('success', 'Đã đổi mật khẩu cá nhân!');
+  
+  document.getElementById('forcePassBox').style.display = 'none';
+  document.getElementById('mainLoginBox').style.display = 'block'; // reset view for next time
+  finishLoginSetup();
+}
+
+function finishLoginSetup() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appContainer').classList.remove('blurred');
+  
+  const roleNames = {admin: 'ADMIN', nganhhang: 'NGÀNH HÀNG', qltp: 'QLTP'};
+  document.getElementById('headerUserName').innerHTML = `${currentUser.name}<br><small>${currentUser.code} - ${roleNames[currentRole]}</small>`;
+  document.getElementById('roleStatusText').textContent = `Phân hệ đang hoạt động: ${roleNames[currentRole]} (${currentUser.name})`;
+  
+  updateRoleUI(); updateAllDatalists();
+  
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('filterTuNgay').value = today; document.getElementById('filterDenNgay').value = today;
+  
+  logAction('ĐĂNG NHẬP', 'Hệ thống'); loadTable();
+}
+
+function logout() {
+  currentUser = null; currentRole = null; pendingUserUpdate = null;
+  document.getElementById('appContainer').classList.add('blurred');
+  
+  document.getElementById('loginRole').value = ''; toggleLoginFields();
+  document.getElementById('forcePassBox').style.display = 'none';
+  document.getElementById('mainLoginBox').style.display = 'block';
+  
+  document.getElementById('loginOverlay').style.display = 'flex';
 }
 
 function updateRoleUI() {
-  const isAd = currentRole === 'admin';
-  const isNH = currentRole === 'nganhhang';
-  const isQL = currentRole === 'qltp';
-
-  document.getElementById('roleAdminBtn').classList.toggle('active', isAd);
-  document.getElementById('roleNganhHangBtn').classList.toggle('active', isNH);
-  document.getElementById('roleQLTPBtn').classList.toggle('active', isQL);
-
-  // Admin quyền full
-  document.getElementById('adminStats').style.display = isAd ? 'flex' : 'none';
+  const isAd = currentRole === 'admin'; const isNH = currentRole === 'nganhhang'; const isQL = currentRole === 'qltp';
   document.getElementById('adminButtons').style.display = isAd ? 'flex' : 'none';
-  
-  // Nút Tạo mới: Admin & QLTP
   document.getElementById('btnTaoMoi').style.display = (isQL || isAd) ? 'inline-flex' : 'none';
-  
-  // Cụm Ngành hàng (Duyệt, Cấu hình): Admin & Ngành hàng
   document.getElementById('nganhHangButtons').style.display = (isNH || isAd) ? 'flex' : 'none';
-  
-  // Import & Tải form mẫu Khai Báo (Chỉ QLTP & Admin)
   document.getElementById('btnImportKhaiBao').style.display = (isQL || isAd) ? 'inline-flex' : 'none';
   document.getElementById('linkTemplateKhaiBao').style.display = (isQL || isAd) ? 'inline-flex' : 'none';
 }
 
+// ĐỔI MẬT KHẨU CHỦ ĐỘNG
+function openChangePassModal() {
+  if(!currentUser) return;
+  document.getElementById('cpOld').value=''; document.getElementById('cpNew').value='';
+  showModal('changePassModal');
+}
+function submitChangePass() {
+  const o = document.getElementById('cpOld').value; const n = document.getElementById('cpNew').value;
+  if(o !== currentUser.pass) return toast('error', 'Mật khẩu cũ không đúng!');
+  if(!n || n.length < 3) return toast('error', 'Mật khẩu mới không hợp lệ!');
+  
+  let users = DB.get('users') || [];
+  let idx = users.findIndex(u => u.code === currentUser.code && u.role === currentUser.role);
+  if(idx >= 0) { users[idx].pass = n; currentUser.pass = n; DB.set('users', users); toast('success', 'Đổi mật khẩu thành công!'); closeModal('changePassModal'); }
+}
+
 // ============================================================
-// TABLE LOADING
+// DATA LIST UPDATES
+// ============================================================
+function updateAllDatalists() {
+  const sts = DB.get('sieuthi') || [];
+  const sps = DB.get('sanpham') || [];
+  const users = DB.get('users') || [];
+  const qltps = users.filter(u => u.role === 'qltp');
+
+  // ST List: QLTP chỉ thấy ST của mình. Admin/NH thấy hết
+  let mySts = sts;
+  if (currentRole === 'qltp') mySts = sts.filter(s => s.qltpCode === currentUser.code);
+  
+  document.getElementById('filterSTList').innerHTML = mySts.map(s => `<option value="${s.name}">`).join('');
+  document.getElementById('listDataST').innerHTML = sts.map(s => `<option value="${s.name}">`).join('');
+  document.getElementById('listDataSP').innerHTML = sps.map(s => `<option value="${s.code} - ${s.name}">`).join('');
+  document.getElementById('listDataQLTP').innerHTML = qltps.map(q => `<option value="${q.code} - ${q.name}">`).join('');
+}
+
+// ============================================================
+// MAIN TABLE LOADING & FILTERING
 // ============================================================
 function loadTable() {
-  allDeclarations = DB.get('declarations') || [];
-  const filterST = document.getElementById('filterSieuthi').value.toLowerCase();
-  const filterFrom = document.getElementById('filterTuNgay').value;
-  const filterTo = document.getElementById('filterDenNgay').value;
-  const filterStatus = document.getElementById('filterStatus').value;
+  let all = DB.get('declarations') || [];
+  
+  // QLTP chỉ thấy dữ liệu họ tạo ra
+  if (currentRole === 'qltp') { all = all.filter(d => d.authorCode === currentUser.code); }
 
-  filteredDeclarations = allDeclarations.filter(d => {
-    if (filterST && !d.sieuthiName.toLowerCase().includes(filterST)) return false;
-    if (filterFrom && d.ngay < filterFrom) return false;
-    if (filterTo && d.ngay > filterTo) return false;
-    if (filterStatus && d.status !== filterStatus) return false;
+  const fST = document.getElementById('filterSieuthi').value.toLowerCase(); const fFr = document.getElementById('filterTuNgay').value; const fTo = document.getElementById('filterDenNgay').value; const fSt = document.getElementById('filterStatus').value;
+
+  filteredDeclarations = all.filter(d => {
+    if (fST && !d.sieuthiName.toLowerCase().includes(fST)) return false;
+    if (fFr && d.ngay < fFr) return false;
+    if (fTo && d.ngay > fTo) return false;
+    if (fSt && d.status !== fSt) return false;
     return true;
   });
-
-  totalPages = Math.max(1, Math.ceil(filteredDeclarations.length / itemsPerPage));
-  if (currentPage > totalPages) currentPage = totalPages;
   renderTable();
-  updateSieuthiDatalist();
 }
 
 function renderTable() {
   const tbody = document.getElementById('tableBody');
-  const start = (currentPage-1)*itemsPerPage;
-  const end = Math.min(start+itemsPerPage, filteredDeclarations.length);
-  const pageData = filteredDeclarations.slice(start, end);
+  const start = (currentPage-1)*itemsPerPage; const pageData = filteredDeclarations.slice(start, start+itemsPerPage);
 
-  if (pageData.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="icon">📋</div><div>Không có dữ liệu</div></div></td></tr>`;
-    return;
-  }
+  if (!pageData.length) { tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:#999;">Không có dữ liệu</td></tr>`; return; }
 
   tbody.innerHTML = pageData.map((d, i) => {
-    const hasManual = d.isManualSieuthi || d.isManualSanpham || d.nhanvienList.some(n=>n.isManual);
-    const rowClass = (currentRole==='nganhhang' && hasManual && d.status==='pending') ? 'highlight-manual' : '';
     const checked = selectedIds.has(d.id) ? 'checked' : '';
-
-    const sieuthiTag = d.isManualSieuthi ? `<span class="manual-tag">⚠ ${d.sieuthiName}</span>` : d.sieuthiName;
+    const stTag = d.isManualSieuthi ? `<span class="manual-tag">⚠ ${d.sieuthiName}</span>` : d.sieuthiName;
     const spCode = d.sanphamCode || 'SP___';
     const spTag = d.isManualSanpham ? `<span class="manual-tag">⚠ ${d.sanphamName}</span>` : d.sanphamName;
     const nvTags = d.nhanvienList.map(n => n.isManual ? `<span class="manual-tag">⚠ ${n.name}</span>` : `<span>${n.name}</span>`).join(', ');
-    const statusMap = { draft: '<span class="badge badge-draft">⬜ Nháp</span>', pending: '<span class="badge badge-pending">🕐 Chờ duyệt</span>', approved: '<span class="badge badge-approved">✅ Đã duyệt</span>', rejected: '<span class="badge badge-rejected">❌ Từ chối</span>' };
+    const stat = { draft: '<span class="badge badge-draft">Nháp</span>', pending: '<span class="badge badge-pending">Chờ duyệt</span>', approved: '<span class="badge badge-approved">Đã duyệt</span>', rejected: '<span class="badge badge-rejected">Từ chối</span>' }[d.status];
 
-    let actions = `<button class="btn btn-sm" style="background:#6c757d;color:white;" onclick="openDetail('${d.id}')">👁 Xem</button> `;
+    let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁 Xem</button> `;
+    if ((currentRole==='qltp' || currentRole==='admin') && (d.status==='draft' || d.status==='rejected')) { acts += `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">Sửa</button> `; acts += `<button class="btn btn-sm btn-warning" onclick="submitForApproval('${d.id}')">Duyệt</button> `; }
+    if ((currentRole==='nganhhang' || currentRole==='admin') && d.status==='pending') { acts += `<button class="btn btn-sm btn-success" onclick="approveRecord('${d.id}')">✅</button> `; acts += `<button class="btn btn-sm btn-danger" onclick="openRejectModal('${d.id}')">❌</button> `; }
+    if (currentRole==='admin' || (currentRole==='qltp' && d.authorCode === currentUser.code)) { acts += `<button class="btn btn-sm btn-danger" onclick="deleteRecord('${d.id}')">🗑</button>`; }
 
-    if ((currentRole==='qltp' || currentRole==='admin') && (d.status==='draft'||d.status==='rejected')) {
-      actions += `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">✏</button> `;
-      actions += `<button class="btn btn-sm btn-warning" onclick="submitForApproval('${d.id}')">📤 Duyệt</button> `;
-    }
-    
-    if ((currentRole==='nganhhang' || currentRole==='admin') && d.status==='pending') {
-      actions += `<button class="btn btn-sm btn-success" onclick="approveRecord('${d.id}')">✅</button> `;
-      actions += `<button class="btn btn-sm btn-danger" onclick="openRejectModal('${d.id}')">❌</button> `;
-    }
-
-    // Nút xóa riêng lẻ: QLTP (nếu là tác giả), Admin (xóa hết)
-    if (currentRole==='admin' || (currentRole==='qltp' && (d.authorName === currentUser || !d.authorName))) {
-      actions += `<button class="btn btn-sm btn-danger" onclick="deleteRecord('${d.id}')">🗑</button>`;
-    }
-
-    return `<tr class="${rowClass}">
-      <td style="text-align:center;"><input type="checkbox" ${checked} onchange="toggleSelect('${d.id}')"></td>
-      <td style="color:var(--text-muted);">${start+i+1}</td>
-      <td style="font-weight:500;">${d.authorName || 'QLTP Khách'}</td>
-      <td>${sieuthiTag}</td>
-      <td style="font-weight:600; color:var(--blue);">${fmtDate(d.ngay)}</td>
-      <td>${d.tuGio||'00:00'}</td>
-      <td>${d.denGio||'23:59'}</td>
-      <td style="font-weight:bold; color:var(--green)">${spCode}</td>
-      <td>${spTag}</td>
-      <td style="max-width:160px; font-size:11.5px;">${nvTags}</td>
-      <td>${statusMap[d.status]||d.status}</td>
-      <td style="font-size:11px;color:var(--text-muted);">${fmtDateTime(d.createdAt)}</td>
-      <td style="white-space:nowrap;">${actions}</td>
-    </tr>`;
+    return `<tr><td style="text-align:center;"><input type="checkbox" ${checked} onchange="toggleSelect('${d.id}')"></td><td style="color:#999">${start+i+1}</td><td style="font-weight:600;">${d.authorName}</td><td>${stTag}</td><td style="font-weight:bold;color:var(--blue);">${d.ngay.split('-').reverse().join('/')}</td><td>${d.tuGio||'--'}</td><td>${d.denGio||'--'}</td><td style="font-weight:bold;color:var(--green)">${d.sanphamCode}</td><td>${spTag}</td><td style="font-size:11.5px;max-width:180px;">${nvTags}</td><td>${stat}</td><td style="font-size:11px;color:#888;">${d.createdAt.split('T')[0]}</td><td style="white-space:nowrap;">${acts}</td></tr>`;
   }).join('');
 }
 
-function fmtDate(s) { if (!s) return '--'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
-function fmtDateTime(s) { if (!s) return ''; const d=new Date(s); return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; }
+function toggleSelectAll() { const isChecked = document.getElementById('selectAll').checked; document.querySelectorAll('#tableBody input[type=checkbox]').forEach(cb => { cb.checked = isChecked; const id = cb.getAttribute('onchange').match(/'([^']+)'/)[1]; if (isChecked) selectedIds.add(id); else selectedIds.delete(id); }); updateSelectedCount(); }
+function toggleSelect(id) { selectedIds.has(id)?selectedIds.delete(id):selectedIds.add(id); updateSelectedCount(); }
+function updateSelectedCount() { document.getElementById('selectedCount').textContent = selectedIds.size > 0 ? `(Đã chọn ${selectedIds.size})` : ''; document.getElementById('btnBulkDelete').style.display = (selectedIds.size > 0 && currentRole !== 'nganhhang') ? 'inline-block' : 'none'; }
+function bulkDeleteRecords() { if(!confirm(`Xóa vĩnh viễn ${selectedIds.size} đơn đã chọn?`)) return; let decls = DB.get('declarations') || []; decls = decls.filter(d => !selectedIds.has(d.id)); DB.set('declarations', decls); logAction('XÓA NHIỀU', `Xóa ${selectedIds.size} bản ghi`); selectedIds.clear(); updateSelectedCount(); toast('success','Đã xóa'); loadTable(); }
 
 // ============================================================
-// CHECKBOX & BULK DELETE
+// CUSTOM DROPDOWN (MOUSEDOWN FIX LỖI CLICK)
 // ============================================================
-function toggleSelectAll() {
-  const isChecked = document.getElementById('selectAll').checked;
-  document.querySelectorAll('#tableBody input[type=checkbox]').forEach(cb => {
-    cb.checked = isChecked;
-    const id = cb.getAttribute('onchange').match(/'([^']+)'/)[1];
-    if (isChecked) selectedIds.add(id); else selectedIds.delete(id);
-  });
-  updateSelectedCount();
-}
-
-function toggleSelect(id) { if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); updateSelectedCount(); }
-
-function updateSelectedCount() {
-  const n = selectedIds.size;
-  document.getElementById('selectedCount').textContent = n > 0 ? `(Đã chọn ${n})` : '';
-  // Nút xóa hàng loạt bảng Khai Báo chỉ mở cho QLTP/Admin
-  document.getElementById('btnBulkDelete').style.display = (n > 0 && currentRole !== 'nganhhang') ? 'inline-block' : 'none';
-}
-
-function bulkDeleteRecords() {
-  if (!confirm(`Xác nhận xóa vĩnh viễn ${selectedIds.size} bản ghi khai báo đã chọn?`)) return;
-  let decls = DB.get('declarations') || [];
-  decls = decls.filter(d => !selectedIds.has(d.id));
-  DB.set('declarations', decls);
-  logAction('XÓA NHIỀU', `Xóa ${selectedIds.size} bản ghi khai báo`);
-  selectedIds.clear(); updateSelectedCount();
-  toast('success', `🗑 Đã xóa`); loadTable();
-}
-
-// ============================================================
-// DROPDOWN SEARCH NGUYÊN BẢN
-// ============================================================
-const listMap = { sieuthiList:'sieuthi', sanphamList:'sanpham', nhanvienList:'nhanvien' };
-function getMasterList(listName) { return DB.get(listMap[listName]) || []; }
-
 function filterDrop(wrapId, listName, query, selId) {
-  const items = getMasterList(listName);
-  const q = query.toLowerCase();
-  const filtered = items.filter(i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q));
-  renderDropList(wrapId, filtered, listName, selId, query);
-  showDrop(wrapId);
-}
-function renderDropList(wrapId, items, listName, selId, query) {
+  let items = DB.get(listName) || [];
+  if(listName === 'sieuthi' && currentRole === 'qltp') items = items.filter(s => s.qltpCode === currentUser.code);
+  const q = query.toLowerCase(); const filtered = items.filter(i => i.name.toLowerCase().includes(q) || i.code.toLowerCase().includes(q));
   const list = document.getElementById(wrapId+'-list');
-  let html = items.slice(0,20).map(i => `<div class="dropdown-item" onclick="selectDropItem('${wrapId}','${selId}',${JSON.stringify(i)})"><span>${i.name}</span><span class="code">${i.code}</span></div>`).join('');
-  if (query && query.trim()) html += `<div class="dropdown-item-manual" onclick="selectManualItem('${wrapId}','${selId}','${query.replace(/'/g,"\\'")}')">⚠ Nhập tay: "<strong>${query}</strong>"</div>`;
-  list.innerHTML = html || `<div class="dropdown-item" style="color:var(--text-muted)">Không có kết quả</div>`;
+  let html = filtered.slice(0,20).map(i => `<div class="dropdown-item" onmousedown="selectDropItem('${wrapId}','${selId}',${JSON.stringify(i).replace(/"/g, '&quot;')})"><span>${i.name}</span><span style="font-size:11px;color:#888;">${i.code}</span></div>`).join('');
+  if (query.trim()) html += `<div class="dropdown-item-manual" onmousedown="selectManualItem('${wrapId}','${selId}','${query}')">⚠ Nhập tay: "${query}"</div>`;
+  list.innerHTML = html || `<div style="padding:10px;color:#999;">Không có kết quả</div>`; list.classList.remove('hidden');
 }
-function showDrop(wrapId) {
-  const list = document.getElementById(wrapId+'-list');
-  const listName = wrapId==='dropSieuthi'?'sieuthiList': wrapId==='dropSanpham'?'sanphamList':'nhanvienList';
-  if (!list.children.length) renderDropList(wrapId, getMasterList(listName), listName, wrapId.replace('drop','')+'Selected', '');
-  list.classList.remove('hidden');
-}
-function toggleDrop(wrapId) {
-  const list = document.getElementById(wrapId+'-list');
-  if (list.classList.contains('hidden')) showDrop(wrapId); else list.classList.add('hidden');
-}
+function showDrop(wrapId) { filterDrop(wrapId, wrapId.replace('drop',''), document.getElementById(wrapId.replace('drop','input')).value, wrapId.replace('drop','')+'Selected'); }
 function selectDropItem(wrapId, selId, item) {
-  document.getElementById(wrapId+'-list').classList.add('hidden');
-  const input = document.getElementById(wrapId.replace('drop','input'));
-  if (wrapId === 'dropNhanvien') {
-    if (!dropSelections.nhanvien.find(n=>n.id===item.id)) dropSelections.nhanvien.push({id:item.id, name:item.name, isManual:false});
-    input.value = '';
-  } else {
-    const key = wrapId==='dropSieuthi'?'sieuthi':'sanpham';
-    dropSelections[key] = {id:item.id, code:item.code, name:item.name, isManual:false};
-    input.value = item.name;
-  }
+  const inp = document.getElementById(wrapId.replace('drop','input')); inp.value = '';
+  if (wrapId === 'dropNhanvien') { if (!dropSelections.nhanvien.find(n=>n.id===item.id)) dropSelections.nhanvien.push({id:item.id, name:item.name, isManual:false}); } 
+  else { dropSelections[wrapId.replace('drop','')] = {id:item.id, code:item.code, name:item.name, isManual:false}; inp.value = item.name; }
   renderSelectedTags(selId, wrapId);
 }
-function selectManualItem(wrapId, selId, text) {
-  document.getElementById(wrapId+'-list').classList.add('hidden');
-  const input = document.getElementById(wrapId.replace('drop','input'));
-  if (wrapId === 'dropNhanvien') {
-    if (!dropSelections.nhanvien.find(n=>n.name===text)) dropSelections.nhanvien.push({id:null, name:text, isManual:true});
-    input.value = '';
-  } else {
-    const key = wrapId==='dropSieuthi'?'sieuthi':'sanpham';
-    dropSelections[key] = {id:null, code:'', name:text, isManual:true};
-    input.value = text;
-  }
-  renderSelectedTags(selId, wrapId);
-  toast('warning', `⚠ Khuyến cáo: "${text}" đánh dấu nhập tay`);
+function selectManualItem(wrapId, selId, txt) {
+  const inp = document.getElementById(wrapId.replace('drop','input')); inp.value = '';
+  if (wrapId === 'dropNhanvien') { dropSelections.nhanvien.push({id:null, name:txt, isManual:true}); } else { dropSelections[wrapId.replace('drop','')] = {id:null, code:'', name:txt, isManual:true}; inp.value = txt; }
+  renderSelectedTags(selId, wrapId); toast('warning', `Dữ liệu nhập tay.`);
 }
 function renderSelectedTags(selId, wrapId) {
-  const container = document.getElementById(selId);
-  if (wrapId === 'dropNhanvien') {
-    container.innerHTML = dropSelections.nhanvien.map((n,i) => `<span class="tag-item ${n.isManual?'manual':'matched'}">${n.isManual?'⚠ ':''} ${n.name} <span class="remove" onclick="dropSelections.nhanvien.splice(${i},1);renderSelectedTags('${selId}','${wrapId}')">×</span></span>`).join('');
-  } else {
-    const key = wrapId==='dropSieuthi'?'sieuthi':'sanpham'; const sel = dropSelections[key];
-    container.innerHTML = sel ? `<span class="tag-item ${sel.isManual?'manual':'matched'}">${sel.isManual?'⚠ ':''} ${sel.name} <span class="remove" onclick="dropSelections['${key}']=null;document.getElementById('${wrapId.replace('drop','input')}').value='';renderSelectedTags('${selId}','${wrapId}')">×</span></span>` : '';
-  }
+  const cont = document.getElementById(selId);
+  if (wrapId === 'dropNhanvien') { cont.innerHTML = dropSelections.nhanvien.map((n,i) => `<span class="tag-item ${n.isManual?'manual':''}">${n.isManual?'⚠':''} ${n.name} <span class="remove" onmousedown="dropSelections.nhanvien.splice(${i},1);renderSelectedTags('${selId}','${wrapId}')">×</span></span>`).join(''); } 
+  else { const sel = dropSelections[wrapId.replace('drop','')]; cont.innerHTML = sel ? `<span class="tag-item ${sel.isManual?'manual':''}">${sel.isManual?'⚠':''} ${sel.name} <span class="remove" onmousedown="dropSelections['${wrapId.replace('drop','')}']=null;document.getElementById('${wrapId.replace('drop','input')}').value='';renderSelectedTags('${selId}','${wrapId}')">×</span></span>` : ''; }
 }
-document.addEventListener('click', e => { ['dropSieuthi','dropSanpham','dropNhanvien'].forEach(id => { const wrap = document.getElementById(id); if (wrap && !wrap.contains(e.target)) document.getElementById(id+'-list').classList.add('hidden'); }); });
+document.addEventListener('click', e => { document.querySelectorAll('.dropdown-list').forEach(l => { if(!l.parentElement.contains(e.target)) l.classList.add('hidden'); }); });
 
 // ============================================================
-// MODAL TẠO MỚI/SỬA
+// TẠO/SỬA KHAI BÁO
 // ============================================================
 function openCreateModal() {
-  resetForm(); currentEditId = null;
-  document.getElementById('createModalTitle').textContent = 'Tạo mới dữ liệu Khai Báo';
-  document.getElementById('btnSubmitForm').textContent = 'Thêm mới';
+  currentEditId = null; dropSelections = {sieuthi:null, sanpham:null, nhanvien:[]};
+  document.getElementById('inputSieuthi').value=''; document.getElementById('inputSanpham').value=''; document.getElementById('inputNhanvien').value=''; document.getElementById('formNgay').value=''; document.getElementById('formTuGio').value=''; document.getElementById('formDenGio').value='';
+  renderSelectedTags('sieuthiSelected','dropSieuthi'); renderSelectedTags('sanphamSelected','dropSanpham'); renderSelectedTags('nhanvienSelected','dropNhanvien');
   showModal('createModal');
 }
-function resetForm() {
-  document.getElementById('editId').value = ''; document.getElementById('inputSieuthi').value = ''; document.getElementById('inputSanpham').value = ''; document.getElementById('inputNhanvien').value = '';
-  document.getElementById('formNgay').value = ''; document.getElementById('formTuGio').value = ''; document.getElementById('formDenGio').value = '';
-  document.getElementById('sieuthiSelected').innerHTML = ''; document.getElementById('sanphamSelected').innerHTML = ''; document.getElementById('nhanvienSelected').innerHTML = '';
-  dropSelections = {sieuthi:null, sanpham:null, nhanvien:[]};
+function openEditModal(id) {
+  const d = (DB.get('declarations')||[]).find(x=>x.id===id); if(!d) return; currentEditId = id; 
+  dropSelections.sieuthi = {id:d.sieuthiId, name:d.sieuthiName, isManual:d.isManualSieuthi}; dropSelections.sanpham = {id:d.sanphamId, code:d.sanphamCode, name:d.sanphamName, isManual:d.isManualSanpham}; dropSelections.nhanvien = [...d.nhanvienList];
+  document.getElementById('inputSieuthi').value=d.sieuthiName; document.getElementById('inputSanpham').value=d.sanphamName; document.getElementById('formNgay').value=d.ngay; document.getElementById('formTuGio').value=d.tuGio; document.getElementById('formDenGio').value=d.denGio;
+  renderSelectedTags('sieuthiSelected','dropSieuthi'); renderSelectedTags('sanphamSelected','dropSanpham'); renderSelectedTags('nhanvienSelected','dropNhanvien');
+  showModal('createModal');
 }
 function submitForm() {
-  const st = dropSelections.sieuthi; const sp = dropSelections.sanpham; const nv = dropSelections.nhanvien;
-  const ngay = document.getElementById('formNgay').value;
-  if (!st) { toast('error','Chọn Siêu thị!'); return; } if (!sp) { toast('error','Chọn Sản phẩm!'); return; } if (!ngay) { toast('error','Chọn Ngày!'); return; } if (nv.length===0) { toast('error','Chọn NV!'); return; }
+  const st=dropSelections.sieuthi, sp=dropSelections.sanpham, nv=dropSelections.nhanvien, ngay=document.getElementById('formNgay').value, tG=document.getElementById('formTuGio').value, dG=document.getElementById('formDenGio').value;
+  if(!st) return toast('error','Chọn Siêu thị!'); if(!sp) return toast('error','Chọn Sản phẩm!'); if(!ngay) return toast('error','Chọn Ngày!'); if(nv.length===0) return toast('error','Chọn Nhân viên!');
   
-  const decls = DB.get('declarations') || [];
-  const editId = document.getElementById('editId').value;
-  if (editId) {
-    const idx = decls.findIndex(x=>x.id===editId);
-    if (idx>=0) decls[idx] = {...decls[idx], sieuthiId:st.id, sieuthiName:st.name, isManualSieuthi:st.isManual, sanphamId:sp.id, sanphamCode: sp.code, sanphamName:sp.name, isManualSanpham:sp.isManual, nhanvienList:nv, ngay, tuGio:document.getElementById('formTuGio').value, denGio:document.getElementById('formDenGio').value, status:'draft'};
-    logAction('SỬA', `Sửa đơn ID ${editId}`); toast('success','✅ Đã cập nhật');
+  let decls = DB.get('declarations') || [];
+  if(currentEditId) {
+    let idx = decls.findIndex(x=>x.id===currentEditId);
+    decls[idx] = {...decls[idx], sieuthiId:st.id, sieuthiName:st.name, isManualSieuthi:st.isManual, sanphamId:sp.id, sanphamCode:sp.code, sanphamName:sp.name, isManualSanpham:sp.isManual, nhanvienList:nv, ngay, tuGio:tG, denGio:dG, status:'draft'};
+    toast('success','Cập nhật OK'); logAction('SỬA ĐƠN', currentEditId);
   } else {
-    const newId = 'BK'+String(Date.now()).slice(-6);
-    decls.unshift({ id:newId, authorName: currentUser, sieuthiId:st.id, sieuthiName:st.name, isManualSieuthi:st.isManual, ngay, tuGio:document.getElementById('formTuGio').value, denGio:document.getElementById('formDenGio').value, sanphamId:sp.id, sanphamCode: sp.code, sanphamName:sp.name, isManualSanpham:sp.isManual, nhanvienList:nv, status:'draft', createdAt:new Date().toISOString(), rejectReason:'' });
-    logAction('TẠO', `Tạo mới đơn ID ${newId}`); toast('success','✅ Đã tạo mới');
+    decls.unshift({ id:'BK'+Date.now().toString().slice(-6), authorCode:currentUser.code, authorName:currentUser.name, sieuthiId:st.id, sieuthiName:st.name, isManualSieuthi:st.isManual, ngay, tuGio:tG, denGio:dG, sanphamId:sp.id, sanphamCode:sp.code, sanphamName:sp.name, isManualSanpham:sp.isManual, nhanvienList:nv, status:'draft', createdAt:new Date().toISOString(), rejectReason:'' });
+    toast('success','Tạo mới OK'); logAction('TẠO ĐƠN', 'Thành công');
   }
   DB.set('declarations', decls); closeModal('createModal'); loadTable();
 }
 
-// ============================================================
-// WORKFLOW ACTIONS
-// ============================================================
-function submitForApproval(id) { const decls = DB.get('declarations') || []; const idx = decls.findIndex(x=>x.id===id); if(idx>=0){ decls[idx].status='pending'; DB.set('declarations', decls); logAction('GỬI DUYỆT', `ID ${id}`); toast('success','📤 Đã gửi duyệt'); loadTable(); } }
-function approveRecord(id) { const decls = DB.get('declarations') || []; const idx = decls.findIndex(x=>x.id===id); if(idx>=0){ decls[idx].status='approved'; DB.set('declarations', decls); logAction('DUYỆT', `ID ${id}`); toast('success','✅ Đã phê duyệt'); loadTable(); } }
-function openRejectModal(id) { rejectTargetId = id; document.getElementById('rejectReasonInput').value = ''; showModal('rejectModal'); }
+// WORKFLOW
+function submitForApproval(id) { let d=DB.get('declarations')||[]; d.find(x=>x.id===id).status='pending'; DB.set('declarations',d); logAction('GỬI DUYỆT',id); loadTable(); toast('success','Đã gửi duyệt'); }
+function approveRecord(id) { let d=DB.get('declarations')||[]; d.find(x=>x.id===id).status='approved'; DB.set('declarations',d); logAction('DUYỆT ĐƠN',id); loadTable(); }
+function openRejectModal(id) { rejectTargetId=id; document.getElementById('rejectReasonInput').value=''; showModal('rejectModal'); }
 function confirmReject() {
-  const reason = document.getElementById('rejectReasonInput').value.trim(); if(!reason) {toast('error','Nhập lý do!'); return;}
-  const decls = DB.get('declarations') || [];
-  if (rejectTargetId === '__bulk__') {
-    let c = 0; decls.forEach(d => { if(selectedIds.has(d.id)&&d.status==='pending'){d.status='rejected';d.rejectReason=reason;c++;} });
-    logAction('TỪ CHỐI NHIỀU', `${c} đơn. Ldo: ${reason}`); selectedIds.clear(); toast('warning',`❌ Từ chối ${c} đơn`);
-  } else {
-    const idx = decls.findIndex(x=>x.id===rejectTargetId); if(idx>=0){decls[idx].status='rejected';decls[idx].rejectReason=reason;}
-    logAction('TỪ CHỐI', `ID ${rejectTargetId}. Ldo: ${reason}`); toast('warning','❌ Đã từ chối');
-  }
-  DB.set('declarations', decls); closeModal('rejectModal'); loadTable();
+  const rs = document.getElementById('rejectReasonInput').value; if(!rs) return toast('error','Nhập lý do!');
+  let decls = DB.get('declarations') || [];
+  if(rejectTargetId==='__bulk__') { decls.forEach(d=>{if(selectedIds.has(d.id)&&d.status==='pending'){d.status='rejected';d.rejectReason=rs;}}); selectedIds.clear(); }
+  else { let ix=decls.findIndex(x=>x.id===rejectTargetId); decls[ix].status='rejected'; decls[ix].rejectReason=rs; }
+  DB.set('declarations', decls); logAction('TỪ CHỐI', rs); closeModal('rejectModal'); loadTable(); toast('warning','Đã từ chối');
 }
-function bulkApprove() {
-  if (selectedIds.size===0) return; const decls = DB.get('declarations') || []; let c = 0;
-  decls.forEach(d => { if(selectedIds.has(d.id)&&d.status==='pending'){d.status='approved';c++;} });
-  DB.set('declarations', decls); logAction('DUYỆT NHIỀU', `${c} đơn`); selectedIds.clear(); toast('success',`✅ Duyệt ${c} đơn`); loadTable();
-}
-function bulkReject() { if (selectedIds.size===0) return; rejectTargetId = '__bulk__'; document.getElementById('rejectReasonInput').value = ''; showModal('rejectModal'); }
-function deleteRecord(id) { if(!confirm('Xóa bản ghi này?')) return; let decls = DB.get('declarations') || []; decls = decls.filter(d=>d.id!==id); DB.set('declarations', decls); logAction('XÓA', `ID ${id}`); toast('success','🗑 Đã xóa'); loadTable(); }
+function bulkApprove() { let d=DB.get('declarations')||[]; d.forEach(x=>{if(selectedIds.has(x.id)&&x.status==='pending') x.status='approved';}); DB.set('declarations',d); selectedIds.clear(); logAction('DUYỆT NHIỀU',''); loadTable(); toast('success','Duyệt hàng loạt OK'); }
+function bulkReject() { if(selectedIds.size===0) return; rejectTargetId='__bulk__'; showModal('rejectModal'); }
+function deleteRecord(id) { if(!confirm('Xóa bản ghi này?')) return; let d=DB.get('declarations')||[]; DB.set('declarations', d.filter(x=>x.id!==id)); logAction('XÓA',id); loadTable(); toast('success','Đã xóa'); }
 
 function openDetail(id) {
-  const d = (DB.get('declarations')||[]).find(x=>x.id===id); if(!d) return;
-  const stMap = {draft:'⬜ Nháp',pending:'🕐 Chờ duyệt',approved:'✅ Đã duyệt',rejected:'❌ Từ chối'};
-  const priceConfig = (DB.get('priceConfig')||[]).find(p=>p.sanphamCode===d.sanphamCode && p.sieuthiName===d.sieuthiName); // Khớp theo SP & ST
-  
-  let priceHtml = `<div style="color:var(--text-muted);font-size:12px;">Chưa có cấu hình giá/thưởng cho Sản phẩm & Siêu thị này.</div>`;
-  if (priceConfig) priceHtml = `<div class="price-row" style="margin:0;"><strong>Loại:</strong> ${priceConfig.rewardType} &nbsp;|&nbsp; <strong>Giá:</strong> ${priceConfig.price} &nbsp;|&nbsp; <strong>Thưởng:</strong> ${priceConfig.reward}</div>`;
-
-  document.getElementById('detailModalBody').innerHTML = `
-    <div class="detail-section"><h4>📋 Thông tin</h4><dl class="detail-grid"><dt>Mã đợt:</dt><dd>${d.id}</dd><dt>Trạng thái:</dt><dd>${stMap[d.status]}</dd><dt>QLTP Tạo:</dt><dd>${d.authorName}</dd>${d.rejectReason?`<dt>Lý do từ chối:</dt><dd style="color:red;">${d.rejectReason}</dd>`:''}</dl></div>
-    <div class="detail-section"><h4>🏪 Chi tiết</h4><dl class="detail-grid"><dt>Siêu thị:</dt><dd>${d.sieuthiName}</dd><dt>Ngày:</dt><dd>${fmtDate(d.ngay)}</dd><dt>Giờ:</dt><dd>${d.tuGio||'--'} -> ${d.denGio||'--'}</dd><dt>Sản phẩm:</dt><dd>[${d.sanphamCode||'--'}] ${d.sanphamName}</dd><dt>NV:</dt><dd>${d.nhanvienList.map(n=>n.name).join(', ')}</dd></dl></div>
-    <div class="detail-section"><h4>💰 Cấu hình giá áp dụng</h4>${priceHtml}</div>`;
+  const d = (DB.get('declarations')||[]).find(x=>x.id===id);
+  const pc = (DB.get('priceConfig')||[]).find(p=>p.sanphamCode===d.sanphamCode && p.sieuthiName===d.sieuthiName); // Matching rule
+  let pHtml = pc ? `<div style="background:#e8f4f8;padding:10px;border-radius:4px;"><b>Loại:</b> ${pc.rewardType} | <b>Giá bán:</b> ${pc.price}đ | <b>Mức thưởng:</b> ${pc.reward}</div>` : `<i style="color:#888">Chưa có cấu hình giá cho SP & ST này</i>`;
+  document.getElementById('detailModalBody').innerHTML = `<h4 style="color:var(--green);border-bottom:1px solid #eee;padding-bottom:5px;">Thông tin đơn ${d.id}</h4><p><b>Người tạo:</b> ${d.authorName} (${d.authorCode}) <br> <b>Ngày:</b> ${d.ngay.split('-').reverse().join('/')} | <b>Giờ:</b> ${d.tuGio||'--'} -> ${d.denGio||'--'}</p><p><b>Siêu thị:</b> ${d.sieuthiName}</p><p><b>Sản phẩm:</b> [${d.sanphamCode||'--'}] ${d.sanphamName}</p><p><b>Nhân viên:</b> ${d.nhanvienList.map(n=>n.name).join(', ')}</p><br><h4 style="color:var(--green);border-bottom:1px solid #eee;padding-bottom:5px;">Cấu hình Giá & Thưởng</h4>${pHtml}`;
   document.getElementById('detailModalFooter').innerHTML = `<button class="btn btn-secondary" onclick="closeModal('detailModal')">Đóng</button>`;
   showModal('detailModal');
 }
 
 // ============================================================
-// EXCEL EXPORT / IMPORT (.XLSX)
+// EXPORT & IMPORT (SHEETJS)
 // ============================================================
 function exportExcel() {
-  const decls = filteredDeclarations.length ? filteredDeclarations : (DB.get('declarations')||[]);
-  const ws_data = [['Mã đợt','QLTP','Siêu thị','Ngày Biệt Kích','Từ giờ','Đến giờ','Mã SP','Tên SP','Danh sách NV','Trạng thái','Tạo lúc']];
-  decls.forEach(d => {
-    ws_data.push([d.id, d.authorName, d.sieuthiName, fmtDate(d.ngay), d.tuGio||'', d.denGio||'', d.sanphamCode||'', d.sanphamName, d.nhanvienList.map(n=>n.name).join('; '), d.status, fmtDateTime(d.createdAt)]);
-  });
-  const ws = XLSX.utils.aoa_to_sheet(ws_data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data"); XLSX.writeFile(wb, `Export_${Date.now()}.xlsx`);
-  logAction('EXPORT', 'Xuất Excel Khai báo');
+  const data = filteredDeclarations.map(d => [d.id, d.authorName, d.sieuthiName, d.ngay, d.tuGio||'', d.denGio||'', d.sanphamCode, d.sanphamName, d.nhanvienList.map(n=>n.name).join(';'), d.status, d.createdAt]);
+  const ws = XLSX.utils.aoa_to_sheet([['Mã','Tạo bởi','Siêu thị','Ngày','Từ giờ','Đến giờ','Mã SP','Tên SP','DS NV','Trạng thái','Ngày tạo'], ...data]);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KhaiBao"); XLSX.writeFile(wb, `BietKich_${Date.now()}.xlsx`); logAction('EXPORT EXCEL','');
 }
 
 function downloadTemplateExcel(type) {
-  let ws_data = [];
-  if (type === 'khaibao') {
-    ws_data = [['Siêu thị','Ngày (DD/MM/YYYY)','Từ giờ (HH:MM)','Đến giờ (HH:MM)','Mã SP','Tên SP','Danh sách NV (cách nhau ;)'], ['BHX Lê Văn Sỹ','26/04/2026','08:00','20:00','SP001','Bia Tiger','Nguyễn Văn An;Trần Thị Bình']];
-  } else {
-    ws_data = [['Ngày (DD/MM/YYYY)','Tên QLTP','Siêu thị','Mã SP','Tên SP','Loại Thưởng (Cố định/%/Sản lượng)','Giá Bán','Mức Thưởng'], ['26/04/2026','QLTP Tân','BHX Lê Văn Sỹ','SP001','Bia Tiger','Tiền cố định','200000','10000']];
-  }
-  const ws = XLSX.utils.aoa_to_sheet(ws_data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb, `Template_Import_${type}.xlsx`);
+  let d = type==='khaibao' ? [['Siêu thị','Ngày (DD/MM/YYYY)','Từ giờ (HH:MM)','Đến giờ (HH:MM)','Mã SP','Tên SP','DS NV (cách nhau ;)'],['BHX Trần Hưng Đạo','25/12/2026','08:00','20:00','SP001','Bia Tiger','Nguyễn Văn A; Trần B']] : [['Ngày (DD/MM/YYYY)','Mã QLTP','Siêu thị','Mã SP','Tên SP','Loại Thưởng','Giá','Thưởng'],['25/12/2026','QLTP01','BHX Trần Hưng Đạo','SP001','Bia Tiger','Tiền cố định','200000','10000']];
+  const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb, `Template_${type}.xlsx`);
 }
 
-function openImportModal(context) {
-  importContext = context;
-  document.getElementById('importModalTitle').innerText = context === 'khaibao' ? "📤 Import Khai Báo (.xlsx)" : "📤 Import Cấu Hình Giá (.xlsx)";
-  document.getElementById('importGuideText').innerHTML = context === 'khaibao' 
-    ? `📋 <strong>Cột Khai báo:</strong> Siêu thị | Ngày | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV`
-    : `💰 <strong>Cột Cấu hình:</strong> Ngày | Tên QLTP | Siêu thị | Mã SP | Tên SP | Loại Thưởng | Giá Bán | Mức Thưởng`;
-  document.getElementById('bulkPreview').innerHTML = ''; document.getElementById('importValidCount').textContent = '0'; document.getElementById('btnImportSubmit').disabled = true; document.getElementById('fileInput').value = '';
-  showModal('importModal');
+function openImportModal(ctx) {
+  importContext = ctx; document.getElementById('importModalTitle').textContent = ctx==='khaibao'?'📤 Import Khai Báo':'📤 Import Cấu Hình (Ngành Hàng)';
+  document.getElementById('importGuideText').innerHTML = ctx==='khaibao' ? 'Chuẩn: Siêu thị | Ngày | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV' : 'Chuẩn: Ngày | Mã QLTP | Siêu thị | Mã SP | Tên SP | Loại Thưởng | Giá Bán | Mức Thưởng';
+  document.getElementById('fileInput').value=''; document.getElementById('bulkPreview').innerHTML=''; document.getElementById('btnImportSubmit').disabled=true; showModal('importModal');
 }
-
-function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').style.borderColor = "var(--blue)"; }
-function handleDrop(e) { e.preventDefault(); document.getElementById('uploadZone').style.borderColor = "var(--border)"; const f=e.dataTransfer.files[0]; if(f){const inp=document.getElementById('fileInput');const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;handleExcelUpload({target:inp});} }
 
 function handleExcelUpload(e) {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    const data = new Uint8Array(evt.target.result); const wb = XLSX.read(data, {type: 'array'});
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1}); 
-    if(rows.length <= 1) { toast('error', 'File không có dữ liệu'); return; }
-    if(importContext === 'khaibao') validateImportKhaiBao(rows.slice(1));
-    else validateImportCauHinh(rows.slice(1));
-  };
-  reader.readAsArrayBuffer(file);
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader(); r.onload = (evt) => {
+    const wb = XLSX.read(new Uint8Array(evt.target.result), {type:'array'});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
+    if(rows.length<2) return toast('error','File rỗng!');
+    if(importContext==='khaibao') parseImportKB(rows.slice(1)); else parseImportCH(rows.slice(1));
+  }; r.readAsArrayBuffer(f);
 }
 
-function validateImportKhaiBao(rows) {
-  parsedBulkRows = []; const mstST = DB.get('sieuthi')||[]; const mstSP = DB.get('sanpham')||[]; const mstNV = DB.get('nhanvien')||[];
-  let html = ''; let vCount=0, eCount=0;
-  rows.forEach((r, i) => {
+function parseImportKB(rows) {
+  parsedBulkRows = []; const mstST=DB.get('sieuthi')||[], mstSP=DB.get('sanpham')||[], mstNV=DB.get('nhanvien')||[];
+  let h='', v=0, err=0;
+  rows.forEach((r,i) => {
     if(!r[0]) return;
-    const stName=(r[0]||'').toString().trim(), ngay=(r[1]||'').toString().trim(), tuGio=(r[2]||'').toString().trim(), denGio=(r[3]||'').toString().trim(), spCode=(r[4]||'').toString().trim().toUpperCase(), spName=(r[5]||'').toString().trim(), nvStr=(r[6]||'').toString().trim();
-    const errors = []; let isWarn = false; let stId=null, spId=null; let nvParsed = [];
-
-    if(!stName) errors.push('Thiếu Siêu thị'); else { const f = mstST.find(s=>s.name.toLowerCase()===stName.toLowerCase()); if(f) stId=f.id; else {isWarn=true; errors.push('ST nhập tay');} }
-    let pNgay=''; try { if(ngay) {const [d,m,y]=ngay.split('/'); pNgay=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;} } catch {errors.push('Sai định dạng Ngày (DD/MM/YYYY)');} if(!pNgay) errors.push('Thiếu Ngày');
+    const st=(r[0]||'').toString().trim(), dt=(r[1]||'').toString().trim(), t1=(r[2]||'').toString().trim(), t2=(r[3]||'').toString().trim(), spC=(r[4]||'').toString().trim().toUpperCase(), spN=(r[5]||'').toString().trim(), nv=(r[6]||'').toString().trim();
+    let errors=[], isW=false, stId=null, spId=null, nvs=[];
     
-    if(!spCode) errors.push('Thiếu Mã SP'); else { const f = mstSP.find(s=>s.code===spCode); if(f) spId=f.id; else errors.push(`Mã SP [${spCode}] Không tồn tại!`); }
-    if(!nvStr) errors.push('Thiếu NV'); else { nvStr.split(';').forEach(n=>{n=n.trim(); if(!n) return; const f=mstNV.find(x=>x.name.toLowerCase()===n.toLowerCase()); if(f) nvParsed.push({id:f.id,name:f.name,isManual:false}); else {nvParsed.push({id:null,name:n,isManual:true}); isWarn=true; errors.push(`NV "${n}" nhập tay`);} }); }
-
-    let cls='valid', st='✅ OK', isFatal = errors.some(e=>e.includes('Thiếu')||e.includes('Tồn tại')||e.includes('định dạng'));
-    if(isFatal) { cls='error'; st='❌ Lỗi'; eCount++; } else if(isWarn) { cls='manual'; st='⚠ Chú ý'; vCount++; } else { vCount++; }
+    let fSt=mstST.find(s=>s.name.toLowerCase()===st.toLowerCase()); if(fSt) {
+      if(currentRole==='qltp' && fSt.qltpCode !== currentUser.code) errors.push('ST này không thuộc quyền quản lý'); else stId=fSt.id;
+    } else {isW=true; errors.push('ST tay');}
     
-    if(!isFatal) parsedBulkRows.push({stName, stId, isManualST:!stId, ngay:pNgay, tuGio, denGio, spCode, spName, spId, isManualSP:!spId, nvParsed});
-    html += `<div class="bulk-row ${cls}"><span class="row-num">#${i+2}</span><span class="row-status">${st}</span><span>${stName} | ${ngay} | ${spCode} | ${nvStr}</span><span style="margin-left:auto;color:${isFatal?'red':'#856404'};font-size:11px;">${errors.join(', ')}</span></div>`;
+    let pDt=''; try{let [d,m,y]=dt.split('/'); pDt=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}catch{} if(!pDt) errors.push('Lỗi Ngày');
+    let fSp=mstSP.find(s=>s.code===spC); if(fSp) spId=fSp.id; else errors.push('Sai Mã SP');
+    nv.split(';').forEach(n=>{n=n.trim();if(!n)return;let fN=mstNV.find(x=>x.name.toLowerCase()===n.toLowerCase()); if(fN) nvs.push({id:fN.id,name:fN.name,isManual:false}); else {isW=true; nvs.push({id:null,name:n,isManual:true});} });
+
+    let isF = errors.some(e=>e.includes('quản lý')||e.includes('Sai Mã SP')||e.includes('Lỗi Ngày'));
+    if(isF) err++; else { v++; parsedBulkRows.push({stName:st, stId, isManualST:!stId, ngay:pDt, tuGio:t1, denGio:t2, spCode:spC, spName:spN, spId, isManualSP:!spId, nvParsed:nvs}); }
+    h+=`<div class="bulk-row ${isF?'error':isW?'manual':'valid'}"><span style="width:30px">#${i+2}</span><span>${isF?'❌':'✅'} ${st} | ${spC} | ${nv}</span><span style="margin-left:auto;color:red">${errors.join(',')}</span></div>`;
   });
-  document.getElementById('bulkPreview').innerHTML = `<div class="bulk-summary"><div>Tổng: <span>${vCount+eCount}</span></div><div style="color:green;">✅ Hợp lệ: <span>${vCount}</span></div><div style="color:red;">❌ Bị chặn: <span>${eCount}</span></div></div>` + html;
-  document.getElementById('importValidCount').textContent = vCount; document.getElementById('btnImportSubmit').disabled = vCount===0;
+  document.getElementById('bulkPreview').innerHTML = `<div style="margin-bottom:10px;"><b>Hợp lệ: ${v} | Lỗi chặn: ${err}</b></div>${h}`; document.getElementById('btnImportSubmit').disabled = v===0;
 }
 
-function validateImportCauHinh(rows) {
-  parsedBulkRows = []; const mstSP = DB.get('sanpham')||[]; const mstST = DB.get('sieuthi')||[];
-  let html = ''; let vCount=0, eCount=0;
-  rows.forEach((r, i) => {
+function parseImportCH(rows) {
+  parsedBulkRows = []; const mstSP=DB.get('sanpham')||[], mstST=DB.get('sieuthi')||[]; let h='', v=0, err=0;
+  rows.forEach((r,i) => {
     if(!r[0]) return;
-    // Cột: Ngay|QLTP|ST|MaSP|TenSP|Loại|Gia|Thuong
-    const ngay=(r[0]||'').toString().trim(), qltp=(r[1]||'').toString().trim(), stName=(r[2]||'').toString().trim(), spCode=(r[3]||'').toString().trim().toUpperCase(), spName=(r[4]||'').toString().trim(), type=(r[5]||'Tiền cố định').toString().trim(), price=(r[6]||'').toString().trim(), reward=(r[7]||'').toString().trim();
-    const errors = [];
-    
-    let pNgay=''; try { if(ngay) {const [d,m,y]=ngay.split('/'); pNgay=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;} } catch {errors.push('Sai định dạng Ngày');}
-    if(!pNgay) errors.push('Thiếu Ngày');
-    if(!qltp) errors.push('Thiếu QLTP');
-    if(!spCode || !mstSP.find(s=>s.code===spCode)) errors.push(`Mã SP sai/thiếu`);
-    if(!stName || !mstST.find(s=>s.name.toLowerCase()===stName.toLowerCase())) errors.push(`Siêu thị sai/thiếu`);
-
-    let isFatal = errors.length > 0;
-    if(isFatal) { eCount++; } else { vCount++; parsedBulkRows.push({ngay:pNgay, qltpName:qltp, sieuthiName:stName, sanphamCode:spCode, sanphamName:spName, rewardType:type, price, reward}); }
-    
-    html += `<div class="bulk-row ${isFatal?'error':'valid'}"><span class="row-num">#${i+2}</span><span class="row-status">${isFatal?'❌':'✅'}</span><span>${ngay} | ${qltp} | ${stName} | ${spCode} | ${price}đ</span><span style="margin-left:auto;color:red;font-size:11px;">${errors.join(', ')}</span></div>`;
+    const dt=(r[0]||'').toString().trim(), ql=(r[1]||'').toString().trim(), st=(r[2]||'').toString().trim(), spC=(r[3]||'').toString().trim().toUpperCase(), spN=(r[4]||'').toString().trim(), tp=(r[5]||'Tiền cố định').toString().trim(), pr=(r[6]||'').toString().trim(), rw=(r[7]||'').toString().trim();
+    let errors=[]; let pDt=''; try{let [d,m,y]=dt.split('/'); pDt=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}catch{} if(!pDt) errors.push('Thiếu Ngày');
+    if(!mstSP.find(s=>s.code===spC)) errors.push('Sai Mã SP'); if(!mstST.find(s=>s.name.toLowerCase()===st.toLowerCase())) errors.push('Sai ST');
+    if(errors.length>0) err++; else {v++; parsedBulkRows.push({ngay:pDt, qltpName:ql, sieuthiName:st, sanphamCode:spC, sanphamName:spN, rewardType:tp, price:pr, reward:rw});}
+    h+=`<div class="bulk-row ${errors.length>0?'error':'valid'}"><span style="width:30px">#${i+2}</span><span>${dt} | ${ql} | ${st} | ${spC}</span><span style="margin-left:auto;color:red">${errors.join(',')}</span></div>`;
   });
-  document.getElementById('bulkPreview').innerHTML = `<div class="bulk-summary"><div>Tổng: <span>${vCount+eCount}</span></div><div style="color:green;">✅ Hợp lệ: <span>${vCount}</span></div><div style="color:red;">❌ Bị chặn: <span>${eCount}</span></div></div>` + html;
-  document.getElementById('importValidCount').textContent = vCount; document.getElementById('btnImportSubmit').disabled = vCount===0;
+  document.getElementById('bulkPreview').innerHTML = `<div style="margin-bottom:10px;"><b>Hợp lệ: ${v} | Lỗi chặn: ${err}</b></div>${h}`; document.getElementById('btnImportSubmit').disabled = v===0;
 }
 
 function submitBulkImport() {
-  if (importContext === 'khaibao') {
-    const decls = DB.get('declarations') || [];
-    parsedBulkRows.forEach(r => { decls.unshift({ id:'BK'+String(Date.now()+Math.random()).slice(-6), authorName: currentUser, sieuthiId:r.stId, sieuthiName:r.stName, isManualSieuthi:r.isManualST, ngay:r.ngay, tuGio:r.tuGio, denGio:r.denGio, sanphamId:r.spId, sanphamCode: r.spCode, sanphamName:r.spName, isManualSanpham:r.isManualSP, nhanvienList:r.nvParsed, status:'draft', createdAt:new Date().toISOString(), rejectReason:'' }); });
-    DB.set('declarations', decls); logAction('IMPORT', `Khai báo: ${parsedBulkRows.length} đơn`);
-    loadTable();
+  if(importContext==='khaibao'){
+    let d=DB.get('declarations')||[]; parsedBulkRows.forEach(r=>{d.unshift({id:'BK'+Date.now().toString().slice(-6), authorCode:currentUser.code, authorName:currentUser.name, sieuthiId:r.stId, sieuthiName:r.stName, isManualSieuthi:r.isManualST, ngay:r.ngay, tuGio:r.tuGio, denGio:r.denGio, sanphamId:r.spId, sanphamCode:r.spCode, sanphamName:r.spName, isManualSanpham:r.isManualSP, nhanvienList:r.nvParsed, status:'draft', createdAt:new Date().toISOString()});});
+    DB.set('declarations',d); logAction('IMPORT KB', `${parsedBulkRows.length} dòng`); loadTable();
   } else {
-    let confs = DB.get('priceConfig') || [];
-    parsedBulkRows.forEach(r => confs.push(r));
-    DB.set('priceConfig', confs); logAction('IMPORT', `Cấu hình Giá: ${parsedBulkRows.length} dòng`);
+    let c=DB.get('priceConfig')||[]; parsedBulkRows.forEach(r=>c.push(r)); DB.set('priceConfig',c); logAction('IMPORT CH', `${parsedBulkRows.length} dòng`);
   }
-  closeModal('importModal'); toast('success',`✅ Import thành công ${parsedBulkRows.length} dòng`);
+  closeModal('importModal'); toast('success','Import Xong!');
 }
 
 // ============================================================
-// CẤU HÌNH GIÁ VÀ THƯỞNG (NÂNG CẤP TÌM KIẾM BẰNG DATALIST)
+// CẤU HÌNH GIÁ & THƯỞNG (NGÀNH HÀNG)
 // ============================================================
-function openPriceConfigModal() {
-  // Update Datalist cho Sản phẩm
-  document.getElementById('listDataSP').innerHTML = (DB.get('sanpham')||[]).map(s=>`<option value="${s.code} - ${s.name}">`).join('');
-  renderPriceConfigList(); showModal('priceConfigModal');
-}
-
+function openPriceConfigModal() { renderPriceConfigList(); showModal('priceConfigModal'); }
 function renderPriceConfigList() {
-  const configs = DB.get('priceConfig')||[];
-  const html = configs.map((c,i)=>`
-    <div class="price-row">
-      <div class="price-row-header">
-        <span>Cấu hình #${i+1}</span>
-        <button class="btn btn-sm btn-danger" onclick="removePriceRow(${i})">🗑 Xóa</button>
+  let c = DB.get('priceConfig')||[];
+  let h = c.map((x,i) => `
+    <div style="background:white; padding:15px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;"><b>Cấu hình #${i+1}</b><button class="btn btn-sm btn-danger" onclick="DB.set('priceConfig', (DB.get('priceConfig')||[]).filter((_,idx)=>idx!==${i})); renderPriceConfigList();">Xóa</button></div>
+      <div class="form-row-3">
+        <div><label>Ngày</label><input type="date" class="form-control" value="${x.ngay}" onchange="uPC(${i},'ngay',this.value)"></div>
+        <div><label>QLTP</label><input type="text" list="listDataQLTP" class="form-control" value="${x.qltpName}" placeholder="Gõ chọn QLTP..." onchange="uPC(${i},'qltpName',this.value)"></div>
+        <div><label>Siêu thị</label><input type="text" list="listDataST" class="form-control" value="${x.sieuthiName}" placeholder="Gõ chọn ST..." onchange="uPC(${i},'sieuthiName',this.value)"></div>
       </div>
-      <div class="form-row-3" style="margin-bottom:10px;">
-        <div><label>Ngày áp dụng</label><input type="date" class="form-control" value="${c.ngay||''}" onchange="updatePriceConfig(${i},'ngay',this.value)"></div>
-        <div><label>Tên QLTP</label><input type="text" list="listDataQLTP" class="form-control" value="${c.qltpName||''}" placeholder="Gõ tên QLTP..." onchange="updatePriceConfig(${i},'qltpName',this.value)"></div>
-        <div><label>Siêu thị</label><input type="text" list="sieuthiDataList" class="form-control" value="${c.sieuthiName||''}" placeholder="Gõ tên ST..." onchange="updatePriceConfig(${i},'sieuthiName',this.value)"></div>
+      <div style="margin-top:10px;"><label>Sản phẩm</label><input type="text" list="listDataSP" class="form-control" value="${x.sanphamCode?x.sanphamCode+' - '+x.sanphamName:''}" placeholder="Gõ tìm SP..." onchange="uPC_SP(${i},this.value)"></div>
+      <div style="display:flex; gap:10px; margin-top:10px;">${['Tiền cố định','% Lãi gộp','Sản lượng'].map(t=>`<button class="btn btn-sm ${x.rewardType===t?'btn-primary':'btn-secondary'}" onclick="uPC(${i},'rewardType','${t}');renderPriceConfigList()">${t}</button>`).join('')}</div>
+      <div class="form-row" style="margin-top:10px;">
+        <div><label>Giá bán</label><input type="number" class="form-control" value="${x.price}" onchange="uPC(${i},'price',this.value)"></div>
+        <div><label>Mức thưởng</label><input type="number" class="form-control" value="${x.reward}" onchange="uPC(${i},'reward',this.value)"></div>
       </div>
-      <div style="margin-bottom:10px;">
-        <label>Sản phẩm</label>
-        <input type="text" list="listDataSP" class="form-control" value="${c.sanphamCode ? c.sanphamCode + ' - ' + c.sanphamName : ''}" placeholder="Gõ Mã hoặc Tên SP..." onchange="updatePriceSP(${i}, this.value)">
-      </div>
-      <div class="reward-type-tabs">${['Tiền cố định','% Lãi gộp','Theo sản lượng'].map(t=>`<div class="reward-tab ${c.rewardType===t?'active':''}" onclick="updatePriceConfig(${i},'rewardType','${t}');renderPriceConfigList()">${t}</div>`).join('')}</div>
-      <div class="form-row">
-        <div><label>Giá bán (VNĐ)</label><input type="number" class="form-control" value="${c.price||''}" onchange="updatePriceConfig(${i},'price',this.value)"></div>
-        <div><label>Mức Thưởng</label><input type="number" class="form-control" value="${c.reward||''}" onchange="updatePriceConfig(${i},'reward',this.value)"></div>
-      </div>
-    </div>
-  `).join('');
-  document.getElementById('priceConfigList').innerHTML = html || `<div class="empty-state" style="padding:10px;">Chưa có cấu hình.</div>`;
+    </div>`).join('');
+  document.getElementById('priceConfigList').innerHTML = h;
 }
-
-function updatePriceSP(idx, val) {
-  // val có dạng "SP001 - Bia Tiger"
-  let code = '', name = val;
-  if(val.includes(' - ')) { const pts = val.split(' - '); code = pts[0].trim(); name = pts[1].trim(); }
-  priceConfigState = DB.get('priceConfig')||[];
-  priceConfigState[idx].sanphamCode = code; priceConfigState[idx].sanphamName = name;
-  DB.set('priceConfig', priceConfigState);
-}
-
-function updatePriceConfig(i, k, v) { priceConfigState = DB.get('priceConfig')||[]; priceConfigState[i][k] = v; DB.set('priceConfig', priceConfigState); }
-function addPriceRow() { priceConfigState = DB.get('priceConfig')||[]; priceConfigState.unshift({ngay:'', qltpName:'', sieuthiName:'', sanphamCode:'', sanphamName:'', rewardType:'Tiền cố định', price:'', reward:''}); DB.set('priceConfig', priceConfigState); renderPriceConfigList(); }
-function removePriceRow(i) { priceConfigState = DB.get('priceConfig')||[]; priceConfigState.splice(i,1); DB.set('priceConfig', priceConfigState); renderPriceConfigList(); }
-function savePriceConfig() { logAction('LƯU CẤU HÌNH', 'Lưu bảng Giá & Thưởng'); closeModal('priceConfigModal'); toast('success','💾 Đã lưu cấu hình'); }
+function uPC(i,k,v) { let c=DB.get('priceConfig')||[]; c[i][k]=v; DB.set('priceConfig',c); }
+function uPC_SP(i,v) { let c=DB.get('priceConfig')||[]; let p=v.split(' - '); c[i].sanphamCode=p[0]||''; c[i].sanphamName=p[1]||''; DB.set('priceConfig',c); }
+function addPriceRow() { let c=DB.get('priceConfig')||[]; c.unshift({ngay:'',qltpName:'',sieuthiName:'',sanphamCode:'',sanphamName:'',rewardType:'Tiền cố định',price:'',reward:''}); DB.set('priceConfig',c); renderPriceConfigList(); }
+function savePriceConfig() { logAction('CẤU HÌNH','Lưu giá'); closeModal('priceConfigModal'); toast('success','Đã lưu'); }
 
 // ============================================================
-// MASTER DATA MODAL (GIỮ NGUYÊN GỐC)
+// ADMIN: MASTER DATA & USERS
 // ============================================================
-function openMasterDataModal() { document.getElementById('countSieuthi').textContent = (DB.get('sieuthi')||[]).length; document.getElementById('countSanpham').textContent = (DB.get('sanpham')||[]).length; document.getElementById('countNhanvien').textContent = (DB.get('nhanvien')||[]).length; renderMasterList('sieuthi'); showModal('masterDataModal'); }
-function switchMasterTab(t) { ['sieuthi','sanpham','nhanvien'].forEach(x => { document.getElementById(`masterTab${cap(x)}`).classList.toggle('active', x===t); }); document.querySelectorAll('#masterDataModal .tab-btn').forEach((b,i)=>{ b.classList.toggle('active', ['sieuthi','sanpham','nhanvien'].indexOf(t)===i); }); renderMasterList(t); }
-function renderMasterList(type) { const items = DB.get(type) || []; document.getElementById(`master${cap(type)}List`).innerHTML = items.length ? `<table style="width:100%;border-collapse:collapse;font-size:12.5px;"><thead><tr style="background:var(--green);color:white;"><th style="padding:6px;">Mã</th><th style="padding:6px;">Tên</th><th style="width:50px;"></th></tr></thead><tbody>${items.map(i=>`<tr style="border-bottom:1px solid #eee;"><td style="padding:4px;">${i.code}</td><td style="padding:4px;">${i.name}</td><td><button class="btn btn-sm btn-danger" onclick="deleteMasterItem('${type}','${i.id}')">X</button></td></tr>`).join('')}</tbody></table>` : 'Trống'; updateSieuthiDatalist(); }
-function addMasterItem(type) { const c=document.getElementById(`new${cap(type)}Code`).value.trim(), n=document.getElementById(`new${cap(type)}Name`).value.trim(); if(!c||!n){toast('error','Nhập đủ!');return;} const it=DB.get(type)||[]; if(it.find(i=>i.code===c)){toast('error','Trùng mã');return;} it.push({id:c,code:c,name:n}); DB.set(type,it); renderMasterList(type); toast('success','Thêm OK'); }
-function deleteMasterItem(type, id) { if(!confirm('Xóa?')) return; DB.set(type, (DB.get(type)||[]).filter(i=>i.id!==id)); renderMasterList(type); }
-function updateSieuthiDatalist() { document.getElementById('sieuthiDataList').innerHTML = (DB.get('sieuthi')||[]).map(i=>`<option value="${i.name}">`).join(''); }
+function openMasterDataModal() { document.getElementById('countSieuthi').textContent=(DB.get('sieuthi')||[]).length; document.getElementById('countSanpham').textContent=(DB.get('sanpham')||[]).length; document.getElementById('countNhanvien').textContent=(DB.get('nhanvien')||[]).length; document.getElementById('countUsers').textContent=(DB.get('users')||[]).length; renderMasterList('users'); showModal('masterDataModal'); }
+function switchMasterTab(t) { ['users','sieuthi','sanpham','nhanvien'].forEach(x => { document.getElementById(`masterTab${cap(x)}`).classList.toggle('active', x===t); }); renderMasterList(t); }
 function cap(s) { return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function renderMasterList(type) {
+  let it = DB.get(type) || []; let h='';
+  if(type === 'users') {
+    h = `<table style="width:100%;text-align:left;"><thead><tr style="background:#eee;"><th style="padding:6px;">Role</th><th style="padding:6px;">Mã</th><th style="padding:6px;">Tên</th><th style="padding:6px;">Mật khẩu</th><th></th></tr></thead><tbody>` + it.map(i=>`<tr><td style="padding:6px;font-weight:bold;color:var(--blue)">${i.role.toUpperCase()}</td><td style="padding:6px;">${i.code}</td><td style="padding:6px;">${i.name}</td><td style="padding:6px;color:#888;">${i.pass}</td><td>${i.role!=='admin'?`<button class="btn btn-sm btn-danger" onclick="delMaster('${type}','${i.id}')">Xóa</button>`:''}</td></tr>`).join('') + `</tbody></table>`;
+  } else if(type === 'sieuthi') {
+    h = `<table style="width:100%;text-align:left;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã ST</th><th style="padding:6px;">Tên ST</th><th style="padding:6px;">Mã QLTP Quản lý</th><th></th></tr></thead><tbody>` + it.map(i=>`<tr><td style="padding:6px;">${i.code}</td><td style="padding:6px;">${i.name}</td><td style="padding:6px;font-weight:bold;color:var(--green);">${i.qltpCode||'--'}</td><td><button class="btn btn-sm btn-danger" onclick="delMaster('${type}','${i.id}')">Xóa</button></td></tr>`).join('') + `</tbody></table>`;
+  } else {
+    h = `<table style="width:100%;text-align:left;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã</th><th style="padding:6px;">Tên</th><th></th></tr></thead><tbody>` + it.map(i=>`<tr><td style="padding:6px;">${i.code}</td><td style="padding:6px;">${i.name}</td><td><button class="btn btn-sm btn-danger" onclick="delMaster('${type}','${i.id}')">Xóa</button></td></tr>`).join('') + `</tbody></table>`;
+  }
+  document.getElementById(`master${cap(type)}List`).innerHTML = it.length ? h : '<p style="padding:10px;">Trống</p>';
+  updateAllDatalists();
+}
+
+function addMasterUser() {
+  const r=document.getElementById('newUserRole').value, c=document.getElementById('newUserCode').value.trim().toUpperCase(), n=document.getElementById('newUserName').value.trim(), p=document.getElementById('newUserPass').value || (r==='qltp'?'1':'123');
+  if(!c||!n) return toast('error','Nhập đủ mã và tên!');
+  let u=DB.get('users')||[]; if(u.find(x=>x.code===c)) return toast('error','Mã user đã tồn tại!');
+  u.push({id:'U'+Date.now(), role:r, code:c, name:n, pass:p}); DB.set('users',u); toast('success','Thêm User OK'); renderMasterList('users');
+}
+
+function addMasterItem(t) {
+  const c=document.getElementById(`new${cap(t)}Code`).value.trim().toUpperCase(), n=document.getElementById(`new${cap(t)}Name`).value.trim();
+  if(!c||!n) return toast('error','Nhập đủ!');
+  let i=DB.get(t)||[]; if(i.find(x=>x.code===c)) return toast('error','Trùng mã!');
+  let obj = {id:c, code:c, name:n};
+  if(t==='sieuthi') obj.qltpCode = document.getElementById('newSieuthiQLTP').value.split(' - ')[0].trim().toUpperCase();
+  i.push(obj); DB.set(t,i); toast('success','Thêm OK'); renderMasterList(t);
+}
+
+function delMaster(t,id) { if(!confirm('Xóa?')) return; DB.set(t, (DB.get(t)||[]).filter(x=>x.id!==id)); renderMasterList(t); }
 
 // ============================================================
 // LỊCH SỬ THAO TÁC (HISTORY)
 // ============================================================
 function openHistoryModal() {
-  const hist = DB.get('historyLog') || [];
-  const tbody = document.getElementById('historyBody');
-  const filtered = currentRole === 'admin' ? hist : hist.filter(h => h.user === currentUser || h.role === currentRole);
-
-  tbody.innerHTML = filtered.length ? filtered.map(h => `<tr style="border-bottom:1px solid #eee;">
-    <td style="padding:6px; color:#666;">${h.time}</td>
-    <td style="padding:6px; font-weight:600;">${h.user}</td>
-    <td style="padding:6px;">${h.role.toUpperCase()}</td>
-    <td style="padding:6px;"><span class="badge badge-draft" style="color:#333;">${h.action}</span></td>
-    <td style="padding:6px;">${h.detail}</td>
-  </tr>`).join('') : `<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">Chưa có lịch sử</td></tr>`;
-  
-  document.getElementById('btnClearHistory').style.display = currentRole === 'admin' ? 'inline-block' : 'none';
-  showModal('historyModal');
+  let hist = DB.get('historyLog') || [];
+  if(currentRole !== 'admin') hist = hist.filter(h => h.user.includes(currentUser.code) || h.role === currentRole);
+  document.getElementById('historyBody').innerHTML = hist.length ? hist.map(h => `<tr><td style="padding:8px;">${h.time}</td><td style="padding:8px;font-weight:bold;">${h.user}</td><td style="padding:8px;">${h.role.toUpperCase()}</td><td style="padding:8px;color:var(--blue)">${h.action}</td><td style="padding:8px;">${h.detail}</td></tr>`).join('') : `<tr><td colspan="5" align="center">Chưa có lịch sử</td></tr>`;
+  document.getElementById('btnClearHistory').style.display = currentRole === 'admin' ? 'block' : 'none'; showModal('historyModal');
 }
-
-function clearHistory() {
-  if(!confirm('Cảnh báo: Hành động này sẽ xóa sạch toàn bộ lịch sử thao tác của hệ thống. Khuyến cáo chỉ dùng khi reset toàn bộ dữ liệu. Tiếp tục?')) return;
-  DB.set('historyLog', []); openHistoryModal(); toast('success', 'Đã dọn sạch lịch sử.');
-}
+function clearHistory() { if(!confirm('Xóa sạch lịch sử?')) return; DB.set('historyLog',[]); openHistoryModal(); }
 
 // UTILS
 function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
