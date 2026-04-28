@@ -384,9 +384,6 @@ function handleLogin() {
     currentUser = { code: found.code, name: found.name, role: 'nganhhang' };
     currentRole = 'nganhhang';
   }
-  finishLogin();
-}
-
 function finishLogin() {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appContainer').classList.remove('blurred');
@@ -398,9 +395,19 @@ function finishLogin() {
   document.getElementById('filterDenNgay').value = today;
   logAction('ĐĂNG NHẬP', `Phân hệ ${roleLabel}`);
   
+  buildFilterDatalist(); // Của phần tìm kiếm ngoài màn hình chính
+
+  // ---> ĐOẠN CODE GỢI Ý ĐƯỢC ĐẶT Ở ĐÂY <---
+  // Đổ dữ liệu vào Datalist để Gợi ý tự động trong Cấu hình giá
+  const dlST = document.getElementById('listAutoST');
+  if (dlST) dlST.innerHTML = (DB.get('sieuthi')||[]).map(s => `<option value="[${s.code}] ${s.name}">`).join('');
+  
+  const dlSP = document.getElementById('listAutoSP');
+  if (dlSP) dlSP.innerHTML = (DB.get('sanpham')||[]).map(s => `<option value="[${s.code}] ${s.name}">`).join('');
+  // ----------------------------------------
+
   loadTable();
 }
-
 function logout() {
   currentUser = null; currentRole = null;
   document.getElementById('appContainer').classList.add('blurred');
@@ -490,12 +497,20 @@ function renderTable() {
     const nvTags = (d.nhanvienList||[]).map(n => n.isManual ? `<span class="manual-tag">⚠ ${n.name}</span>` : n.name).join(', ');
     const stat = { pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
     
-    let pc = priceCfgs.find(p => 
-  String(p.sanphamCode).trim() === String(d.sanphamCode).trim() && 
-  p.date === d.ngay && 
-  // Hỗ trợ tìm theo tên chính xác hoặc tìm theo Mã ST có chứa trong chuỗi
-  (String(p.sieuthiName).trim() === String(d.sieuthiName).trim() || String(p.sieuthiName).includes(d.sieuthiCode))
-);
+    let pc = priceCfgs.find(p => {
+    // 1. So khớp Mã Sản Phẩm
+    let matchSP = String(p.sanphamCode).includes(d.sanphamCode) || String(d.sanphamCode).includes(p.sanphamCode);
+    
+    // 2. So khớp Siêu Thị
+    let matchST = String(p.sieuthiName).includes(d.sieuthiCode) || String(d.sieuthiName).includes(p.sieuthiName);
+    
+    // 3. So khớp Khoảng Thời Gian (Từ ngày - Đến ngày)
+    let matchDate = true;
+    if (p.fromDate && d.ngay < p.fromDate) matchDate = false;
+    if (p.toDate && d.ngay > p.toDate) matchDate = false;
+
+    return matchSP && matchST && matchDate;
+  });
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
     let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁</button> `;
@@ -1216,10 +1231,11 @@ function renderPriceConfigList() {
         <b style="color:var(--green);">Cấu hình #${i+1}</b>
         <button class="btn btn-sm btn-danger" onclick="deletePriceRow(${i})">Xóa</button>
       </div>
-      <div class="form-row-4">
-        <div><label style="font-size:11px;">Siêu thị</label><input class="form-control" value="${x.sieuthiName||''}" onchange="uPC(${i},'sieuthiName',this.value)" placeholder="Tên ST..."></div>
-        <div><label style="font-size:11px;">Mã SP</label><input class="form-control" value="${x.sanphamCode||''}" onchange="uPC(${i},'sanphamCode',this.value)" placeholder="Mã SP..."></div>
-        <div><label style="font-size:11px;">Ngày áp dụng</label><input type="date" class="form-control" value="${x.date||''}" onchange="uPC(${i},'date',this.value)"></div>
+      <div style="display:grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr; gap:10px;">
+        <div><label style="font-size:11px;">Siêu thị</label><input list="listAutoST" class="form-control" value="${x.sieuthiName||''}" onchange="uPC(${i},'sieuthiName',this.value)" placeholder="Gõ Mã/Tên ST..."></div>
+        <div><label style="font-size:11px;">Mã SP</label><input list="listAutoSP" class="form-control" value="${x.sanphamCode||''}" onchange="uPC(${i},'sanphamCode',this.value)" placeholder="Gõ Mã/Tên SP..."></div>
+        <div><label style="font-size:11px;">Từ ngày</label><input type="date" class="form-control" value="${x.fromDate||''}" onchange="uPC(${i},'fromDate',this.value)"></div>
+        <div><label style="font-size:11px;">Đến ngày</label><input type="date" class="form-control" value="${x.toDate||''}" onchange="uPC(${i},'toDate',this.value)"></div>
         <div><label style="font-size:11px;">Loại thưởng</label>
           <select class="form-control" onchange="uPC(${i},'rewardType',this.value)">
             ${['Tiền cố định','% Lãi gộp','Sản lượng'].map(t=>`<option ${x.rewardType===t?'selected':''}>${t}</option>`).join('')}
@@ -1230,10 +1246,16 @@ function renderPriceConfigList() {
         <div><label style="font-size:11px;">Giá bán</label><input type="text" class="form-control" value="${fMoney(x.price)}" oninput="this.value=fMoney(this.value); uPC(${i},'price',pMoney(this.value))"></div>
         <div><label style="font-size:11px;">Mức thưởng</label><input type="text" class="form-control" value="${fMoney(x.reward)}" oninput="this.value=fMoney(this.value); uPC(${i},'reward',pMoney(this.value))"></div>
       </div>
-    </div>`) .join('') : '<p style="padding:12px;color:#888;">Chưa có cấu hình. Nhấn ➕ để thêm.</p>';
+    </div>`).join('') : '<p style="padding:12px;color:#888;">Chưa có cấu hình. Nhấn ➕ để thêm.</p>';
 }
 function uPC(i,k,v) { let c=DB.get('priceConfig')||[]; c[i][k]=v; DB.set('priceConfig',c); }
-function addPriceRow() { let c=DB.get('priceConfig')||[]; c.unshift({sieuthiName:'',sanphamCode:'', date:'', rewardType:'Tiền cố định',price:'',reward:''}); DB.set('priceConfig',c); renderPriceConfigList(); }
+function addPriceRow() { 
+  let c = DB.get('priceConfig') || []; 
+  // Thay date thành fromDate và toDate
+  c.unshift({sieuthiName:'', sanphamCode:'', fromDate:'', toDate:'', rewardType:'Tiền cố định', price:'', reward:''}); 
+  DB.set('priceConfig',c); 
+  renderPriceConfigList(); 
+}
 function deletePriceRow(i) { let c=DB.get('priceConfig')||[]; c.splice(i,1); DB.set('priceConfig',c); renderPriceConfigList(); }
 function savePriceConfig() { logAction('LƯU CẤU HÌNH GIÁ',''); closeModal('priceConfigModal'); toast('success','Đã lưu!'); loadTable(); }
 // ============================================================
