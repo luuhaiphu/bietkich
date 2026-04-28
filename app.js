@@ -93,7 +93,7 @@ let importContext = 'khaibao';
 let parsedBulkRows = [];
 let rejectTargetId = null;
 let currentEditId = null;
-let dropSel = { sieuthi: null, sanpham: null, nhanvien: [] };
+let dropSel = { filterST: null, sieuthi: null, sanpham: null, nhanvien: [] };
 let hasManualEntry = false;
 let smartApprovalId = null;
 
@@ -115,10 +115,8 @@ function pMoney(str) {
 // ÉP CHUẨN DD/MM/YYYY TOÀN HỆ THỐNG
 function fDate(isoDate) {
   if (!isoDate) return '';
-  // Nếu có chứa giờ (T) thì cắt bỏ lấy ngày
   if (isoDate.includes('T')) isoDate = isoDate.split('T')[0];
   const parts = isoDate.split('-');
-  // Nếu format đang là YYYY-MM-DD -> chuyển thành DD/MM/YYYY
   if (parts.length === 3 && parts[0].length === 4) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
@@ -287,6 +285,26 @@ function parseNhanVien(rows) {
   logAction('IMPORT NV', items.length + ' dòng');
 }
 
+function dlMasterTpl(type) {
+  let d, name;
+  if(type === 'phanbo') {
+    d = [['MST', 'Tên ST', 'QLTP tháng 4.2026 (tên rút gọn)', 'Cụm miền', 'Tỉnh/thành'], ['12345', 'BHX_HCM_001', '27506 - Bá Thành', 'HCM', 'Hồ Chí Minh']];
+    name = "Template_PhanBo.xlsx";
+  } else if(type === 'fmcg') {
+    d = [['Mã sản phẩm', 'Tên sản phẩm', 'Nhóm hàng'], ['1053090000397', 'BÁNH DD AFC VỊ LÚA MÌ', 'Bánh kẹo']];
+    name = "Template_FMCG.xlsx";
+  } else if(type === 'fresh') {
+    d = [['Mã sản phẩm', 'Tên sản phẩm', 'Tên viết tắt'], ['2000000001234', 'THỊT HEO BA RỌI', 'HEO BA RỌI']];
+    name = "Template_Fresh.xlsx";
+  } else if(type === 'nhanvien') {
+    d = [['', '', ''], ['', '', ''], ['', '', ''], ['Mã Nhân Viên', 'Tên Nhân Viên', 'Mã Siêu Thị'], ['268789', 'Nguyễn Hải Phú', '12345']];
+    name = "Template_NhanVien.xlsx";
+  }
+  const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template");
+  XLSX.writeFile(wb, name);
+}
+
 // ============================================================
 // LOGIN
 // ============================================================
@@ -308,12 +326,13 @@ function toggleLoginFields() {
 function suggestQLTP(val) {
   const suggest = document.getElementById('qltpSuggest');
   const qltps = DB.get('qltpList') || [];
-  const q = val.trim().toLowerCase();
+  const q = String(val).trim().toLowerCase();
   if (!q) { suggest.classList.add('hidden'); document.getElementById('qltpConfirm').style.display='none'; return; }
-  const filtered = qltps.filter(x => x.code.toLowerCase().includes(q) || x.name.toLowerCase().includes(q)).slice(0, 10);
+  
+  const filtered = qltps.filter(x => String(x.code).toLowerCase().includes(q) || String(x.name).toLowerCase().includes(q)).slice(0, 10);
   if (!filtered.length) { suggest.classList.add('hidden'); document.getElementById('qltpConfirm').style.display='none'; return; }
   
-  // FIX CHUỘT CLICK: Đổi thành onclick
+  // FIX CLICK: onclick trigger
   suggest.innerHTML = filtered.map(x =>
     `<div class="login-suggest-item" onclick="selectQLTPLogin('${x.code}','${x.name.replace(/'/g,"\\'")}')">
       <span class="mst">${x.code}</span>
@@ -344,7 +363,7 @@ function handleLogin() {
     const code = document.getElementById('loginCodeQLTP').value.trim();
     if (!code) return toast('error', 'Nhập mã QLTP!');
     const qltps = DB.get('qltpList') || [];
-    const found = qltps.find(x => x.code === code);
+    const found = qltps.find(x => String(x.code) === code);
     if (!found) return toast('error', `Mã QLTP [${code}] không tồn tại. Liên hệ Admin nếu cần hỗ trợ.`);
     currentUser = { code: found.code, name: found.name, role: 'qltp' };
     currentRole = 'qltp';
@@ -374,12 +393,11 @@ function finishLogin() {
   const roleLabel = { admin: 'ADMIN', nganhhang: 'NGÀNH HÀNG', qltp: 'QLTP' }[currentRole];
   document.getElementById('headerUserName').textContent = `${currentUser.name} (${currentUser.code} — ${roleLabel})`;
   updateRoleUI();
-  const today = new Date().toISOString().split('T')[0]; // input type="date" bắt buộc YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0];
   document.getElementById('filterTuNgay').value = today;
   document.getElementById('filterDenNgay').value = today;
   logAction('ĐĂNG NHẬP', `Phân hệ ${roleLabel}`);
   
-  buildFilterDatalist();
   loadTable();
 }
 
@@ -417,25 +435,12 @@ function submitChangePass() {
 }
 
 // ============================================================
-// BỘ LỌC TỰ GỢI Ý MÃ - TÊN SIÊU THỊ
-// ============================================================
-function buildFilterDatalist() {
-  let stList = DB.get('sieuthi') || [];
-  if (currentRole === 'qltp') {
-    stList = stList.filter(s => s.qltpCode === currentUser.code);
-  }
-  const dl = document.getElementById('listFilterST');
-  if (dl) {
-    dl.innerHTML = stList.map(s => `<option value="[${s.code}] ${s.name}">`).join('');
-  }
-}
-
-// ============================================================
 // TABLE
 // ============================================================
 function loadTable() {
   let all = DB.get('declarations') || [];
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
+  
   if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code); 
 
   const fST = document.getElementById('filterSieuthi').value.toLowerCase();
@@ -485,7 +490,7 @@ function renderTable() {
     const nvTags = (d.nhanvienList||[]).map(n => n.isManual ? `<span class="manual-tag">⚠ ${n.name}</span>` : n.name).join(', ');
     const stat = { pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
     
-    let pc = priceCfgs.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+    let pc = priceCfgs.find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
     let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁</button> `;
@@ -542,21 +547,21 @@ function bulkDeleteRecords() {
 }
 
 // ============================================================
-// DROPDOWN SEARCH
+// DROPDOWN SEARCH (FIX LỖI KIỂU SỐ NUMBER)
 // ============================================================
 function filterDrop(field, query) {
-  const q = query.toLowerCase().trim();
+  const q = String(query).toLowerCase().trim();
   let items = [];
 
-  if (field === 'sieuthi') {
+  if (field === 'sieuthi' || field === 'filterST') {
     let all = DB.get('sieuthi') || [];
     if (currentRole === 'qltp') all = all.filter(s => s.qltpCode === currentUser.code);
-    items = all.filter(s => !q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))
+    items = all.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q))
       .slice(0, 25)
       .map(s => ({ id: s.id, code: s.code, name: s.name, sub: s.code }));
   } else if (field === 'sanpham') {
     let all = DB.get('sanpham') || [];
-    items = all.filter(s => !q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))
+    items = all.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q))
       .slice(0, 25)
       .map(s => ({ id: s.id, code: s.code, name: s.name, sub: `[${s.code}] ${s.type||''}` }));
   } else if (field === 'nhanvien') {
@@ -565,16 +570,16 @@ function filterDrop(field, query) {
       const mySTs = (DB.get('sieuthi') || []).filter(s => s.qltpCode === currentUser.code).map(s => s.code);
       all = all.filter(n => !n.sieuthiCode || mySTs.includes(n.sieuthiCode));
     }
-    items = all.filter(n => !q || n.name.toLowerCase().includes(q) || n.code.toLowerCase().includes(q))
+    items = all.filter(n => !q || String(n.name).toLowerCase().includes(q) || String(n.code).toLowerCase().includes(q))
       .slice(0, 25)
       .map(n => ({ id: n.id, code: n.code, name: n.name, sub: n.sieuthiCode ? `ST: ${n.sieuthiCode}` : '' }));
   }
 
-  const listEl = document.getElementById(`drop${cap(field)}-list`);
+  const listEl = document.getElementById(field === 'filterST' ? 'dropFilterst-list' : `drop${cap(field)}-list`);
 
   let html = items.map(it => {
     const safeItem = JSON.stringify(it).replace(/"/g,'&quot;');
-    if (field === 'sieuthi') {
+    if (field === 'sieuthi' || field === 'filterST') {
       return `<div class="dropdown-item" onmousedown="selectDropItem('${field}', ${safeItem})">
         <span><b style="color:var(--green)">[${it.code}]</b> ${it.name}</span>
       </div>`;
@@ -599,6 +604,13 @@ function filterDrop(field, query) {
 }
 
 function selectDropItem(field, item) {
+  if (field === 'filterST') {
+    document.getElementById('filterSieuthi').value = `[${item.code}] ${item.name}`;
+    document.getElementById('dropFilterst-list').classList.add('hidden');
+    loadTable();
+    return;
+  }
+  
   document.getElementById(`input${cap(field)}`).value = '';
   if (field === 'nhanvien') {
     if (!dropSel.nhanvien.find(n => n.id === item.id)) dropSel.nhanvien.push({ ...item, isManual: false });
@@ -612,6 +624,13 @@ function selectDropItem(field, item) {
 
 function selectManualItem(field, txt) {
   if (!txt.trim()) return;
+  if (field === 'filterST') {
+    document.getElementById('filterSieuthi').value = txt;
+    document.getElementById('dropFilterst-list').classList.add('hidden');
+    loadTable();
+    return;
+  }
+
   document.getElementById(`input${cap(field)}`).value = '';
   if (field === 'nhanvien') {
     dropSel.nhanvien.push({ id: null, code: '', name: txt, isManual: true });
@@ -666,7 +685,7 @@ document.addEventListener('click', e => {
 });
 
 // ============================================================
-// TẠO / SỬA 
+// TẠO / SỬA KHAI BÁO
 // ============================================================
 function openCreateModal() {
   currentEditId = null;
@@ -735,7 +754,7 @@ function submitForm() {
 }
 
 // ============================================================
-// SMART APPROVAL
+// SMART APPROVAL & WORKFLOW DUYỆT
 // ============================================================
 function openSmartApproval(id) {
   const decls = DB.get('declarations') || [];
@@ -744,7 +763,7 @@ function openSmartApproval(id) {
   
   smartApprovalId = id; 
   const priceCfgs = DB.get('priceConfig') || [];
-  const existingPrice = priceCfgs.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+  const existingPrice = priceCfgs.find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
   
   let modalHtml = document.getElementById('smartApprovalModal');
   if (!modalHtml) {
@@ -823,7 +842,7 @@ function confirmSmartApproval() {
   if (!d) return;
 
   let priceCfgs = DB.get('priceConfig') || [];
-  priceCfgs = priceCfgs.filter(p => !(p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay));
+  priceCfgs = priceCfgs.filter(p => !(String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay));
   priceCfgs.unshift({ sanphamCode: d.sanphamCode, sieuthiName: d.sieuthiName, date: d.ngay, rewardType, price, reward });
   DB.set('priceConfig', priceCfgs);
 
@@ -854,7 +873,8 @@ function bulkApprove() {
       x.status = 'approved'; count++;
     } 
   }); 
-  DB.set('declarations', d); selectedIds.clear(); logAction('DUYỆT NHIỀU', ''); loadTable(); toast('success', `Đã duyệt ${count} đơn!`); 
+  if (count === 0) return toast('error', 'Chưa chọn đơn hoặc đơn không hợp lệ!');
+  DB.set('declarations', d); selectedIds.clear(); logAction('DUYỆT NHIỀU', ''); loadTable(); toast('success', `Đã duyệt hàng loạt ${count} đơn!`); 
 }
 function bulkReject() { 
   if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!'); 
@@ -864,7 +884,7 @@ function deleteRecord(id) { if (!confirm('Xóa bản ghi này?')) return; let d 
 
 function openDetail(id) {
   const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return;
-  const pc = (DB.get('priceConfig') || []).find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+  const pc = (DB.get('priceConfig') || []).find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
   const pHtml = pc ? `<div style="background:#e8f4f8;padding:10px;border-radius:4px;"><b>Loại:</b> ${pc.rewardType} | <b>Giá bán:</b> ${fMoney(pc.price)}đ | <b>Mức thưởng:</b> ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#888">Chưa có cấu hình giá</i>`;
   const manuals = [];
   if (d.isManualSieuthi) manuals.push(`⚠ Siêu thị nhập tay: ${d.sieuthiName}`);
@@ -939,7 +959,7 @@ function exportExcel() {
   logAction('EXPORT', filteredDeclarations.length + ' dòng');
 }
 
-function downloadTemplateExcel(type) {
+function downloadTemplateExcel() {
   const d = [
     ['Siêu thị (Mã hoặc Tên)','Ngày (DD/MM/YYYY)','Từ giờ (HH:MM)','Đến giờ (HH:MM)','Mã SP','Tên SP','DS NV (cách nhau ;)'],
     ['BHX_HCM_001','25/04/2026','08:00','20:00','1053090000397','BÁNH DD AFC VỊ LÚA MÌ','108332 - Trương Thị Kiều; 270445 - Đỗ Ngọc Anh']
@@ -1007,7 +1027,7 @@ function parseImportKB(rows) {
       t2 = String(r[3]||'').trim(), spC = String(r[4]||'').trim(), spN = String(r[5]||'').trim(), nvRaw = String(r[6]||'').trim();
     
     let errs = [], isWarn = false;
-    let stObj = mstST.find(s => s.name.toLowerCase() === st.toLowerCase() || s.code === st);
+    let stObj = mstST.find(s => String(s.name).toLowerCase() === st.toLowerCase() || String(s.code) === st);
     if (!stObj) { isWarn = true; }
     if (currentRole === 'qltp' && stObj && stObj.qltpCode !== currentUser.code) errs.push('ST ngoài quyền');
     
@@ -1026,13 +1046,13 @@ function parseImportKB(rows) {
       if (tErr) errs.push('Giờ sai logic');
     } else { errs.push('Thiếu giờ'); }
 
-    let spObj = mstSP.find(s => s.code === spC || s.name.toLowerCase() === spN.toLowerCase());
+    let spObj = mstSP.find(s => String(s.code) === spC || String(s.name).toLowerCase() === spN.toLowerCase());
     
     let nvs = nvRaw.split(';').filter(x=>x.trim()).map(n => {
       n = n.trim();
       let matchCode = n.match(/^(\d+)/);
       let searchCode = matchCode ? matchCode[1] : n;
-      const fN = mstNV.find(x => x.code === searchCode || x.name.toLowerCase() === n.toLowerCase());
+      const fN = mstNV.find(x => String(x.code) === searchCode || String(x.name).toLowerCase() === n.toLowerCase());
       return fN ? { id: fN.id, code: fN.code, name: fN.name, isManual: false } : { id: null, code: '', name: n, isManual: true };
     });
 
@@ -1095,18 +1115,19 @@ function submitBulkImport() {
   } else if (importContext === 'priceconfig') {
     let c = DB.get('priceConfig') || [];
     parsedBulkRows.forEach(r => {
-      c = c.filter(x => !(x.sanphamCode===r.sanphamCode && x.sieuthiName===r.sieuthiName && x.date===r.date));
+      c = c.filter(x => !(String(x.sanphamCode)===String(r.sanphamCode) && x.sieuthiName===r.sieuthiName && x.date===r.date));
       c.unshift(r);
     });
     DB.set('priceConfig', c);
     logAction('IMPORT GIÁ/THƯỞNG', parsedBulkRows.length + ' dòng');
     closeModal('importModal');
     
+    // Auto Approve
     const allDecls = DB.get('declarations') || [];
     const matchedPending = allDecls.filter(d => {
       if (d.status !== 'pending') return false;
       if (currentRole === 'nganhhang' && d.reviewerCode !== currentUser.code) return false;
-      return parsedBulkRows.some(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+      return parsedBulkRows.some(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
     });
 
     if (matchedPending.length > 0) {
@@ -1130,157 +1151,27 @@ function confirmAutoApprove() {
   allDecls.forEach(d => {
     if (d.status !== 'pending') return;
     if (currentRole === 'nganhhang' && d.reviewerCode !== currentUser.code) return;
-    const matched = parsedBulkRows.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+    const matched = parsedBulkRows.find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
     if (matched) { d.status = 'approved'; approved++; }
   });
   DB.set('declarations', allDecls);
   closeModal('autoApproveModal');
   logAction('TỰ ĐỘNG DUYỆT (IMPORT GIÁ)', approved + ' đơn');
   toast('success', `✅ Đã tự động duyệt ${approved} đơn khớp!`);
+  if (document.getElementById('priceConfigModal') && !document.getElementById('priceConfigModal').classList.contains('hidden')) {
+    renderPriceConfigList();
+  }
   loadTable();
 }
 
 function skipAutoApprove() {
   closeModal('autoApproveModal');
   toast('success', `Import thành công!`);
+  if (document.getElementById('priceConfigModal') && !document.getElementById('priceConfigModal').classList.contains('hidden')) {
+    renderPriceConfigList();
+  }
   loadTable();
 }
-
-// ============================================================
-// MASTER DATA RENDER & SEARCH
-// ============================================================
-function openMasterDataModal() {
-  updateStatChips();
-  switchMasterTab('importData');
-  showModal('masterDataModal');
-}
-
-function switchMasterTab(t) {
-  const tabs = ['importData','users','sieuthi','sanpham','nhanvien'];
-  tabs.forEach(x => {
-    document.getElementById(`masterTab${cap(x)}`).classList.toggle('active', x === t);
-    document.querySelectorAll('.tab-btn').forEach((btn, i) => { if(tabs[i]) btn.classList.toggle('active', tabs[i] === t); });
-  });
-  if (t !== 'importData') {
-    let searchEl = document.getElementById(`search${cap(t)}`);
-    if(searchEl) searchEl.value = '';
-    renderMasterList(t);
-  }
-}
-
-function renderMasterList(type) {
-  const el = document.getElementById(`master${cap(type)}List`);
-  let q = '';
-  let searchEl = document.getElementById(`search${cap(type)}`);
-  if(searchEl) q = searchEl.value.toLowerCase().trim();
-
-  const items = DB.get(type === 'users' ? 'nhUsers' : type) || [];
-
-  if (type === 'users') {
-    const nhUsers = DB.get('nhUsers') || [];
-    const qltpList = DB.get('qltpList') || [];
-    
-    let filteredNH = nhUsers.filter(u => !q || u.code.toLowerCase().includes(q) || u.name.toLowerCase().includes(q));
-    let filteredQL = qltpList.filter(u => !q || u.code.toLowerCase().includes(q) || u.name.toLowerCase().includes(q));
-
-    let rows = ``;
-    if(!q) rows += `<tr style="background:#fff3cd;"><td style="padding:6px;font-weight:bold;">admin</td><td style="padding:6px;">Admin BHX</td><td style="padding:6px;font-weight:bold;color:#666;">Admin</td><td></td></tr>`;
-
-    filteredNH.forEach(u => {
-      rows += `<tr><td style="padding:6px;">${u.code}</td><td style="padding:6px;">${u.name}</td><td style="padding:6px;color:var(--blue);font-weight:600;">Ngành Hàng</td><td><button class="btn btn-sm btn-danger" onclick="delUser('nganhhang','${u.code}')">Xóa</button></td></tr>`;
-    });
-    filteredQL.forEach(u => {
-      rows += `<tr><td style="padding:6px;">${u.code}</td><td style="padding:6px;">${u.name}</td><td style="padding:6px;color:var(--green);font-weight:600;">QLTP</td><td><button class="btn btn-sm btn-danger" onclick="delUser('qltp','${u.code}')">Xóa</button></td></tr>`;
-    });
-
-    if(!rows) rows = `<tr><td colspan="4" align="center" style="padding:20px;color:#999;">Không tìm thấy kết quả</td></tr>`;
-    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã</th><th style="padding:6px;">Tên</th><th style="padding:6px;">Phân hệ</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
-  
-  } else {
-    let filtered = items.filter(s => !q || (s.code&&s.code.toLowerCase().includes(q)) || (s.name&&s.name.toLowerCase().includes(q)));
-    let limit = filtered.slice(0, 100);
-
-    if (type === 'sieuthi') {
-      el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">MST</th><th style="padding:6px;">Tên ST</th><th style="padding:6px;">QLTP</th><th></th></tr></thead><tbody>
-        ${limit.map(s=>`<tr><td style="padding:6px;">${s.code}</td><td style="padding:6px;">${s.name}</td><td style="padding:6px;color:var(--green);font-weight:600;">${s.qltpCode} ${s.qltpName?'- '+s.qltpName:''}</td><td><button class="btn btn-sm btn-danger" onclick="delMaster('sieuthi','${s.id}')">Xóa</button></td></tr>`).join('')}
-      </tbody></table>${filtered.length>100?`<p style="padding:8px;color:#888;font-size:11px;">... và ${filtered.length-100} kết quả khác (gõ thêm từ khóa để tìm)</p>`:''}`;
-    } else if (type === 'sanpham') {
-      el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã SP</th><th style="padding:6px;">Tên SP</th><th style="padding:6px;">Loại</th><th></th></tr></thead><tbody>
-        ${limit.map(s=>`<tr><td style="padding:6px;font-family:monospace;">${s.code}</td><td style="padding:6px;">${s.name}</td><td style="padding:6px;color:#888;">${s.type||''}</td><td><button class="btn btn-sm btn-danger" onclick="delMaster('sanpham','${s.id}')">Xóa</button></td></tr>`).join('')}
-      </tbody></table>${filtered.length>100?`<p style="padding:8px;color:#888;font-size:11px;">... và ${filtered.length-100} kết quả khác</p>`:''}`;
-    } else if (type === 'nhanvien') {
-      el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã NV</th><th style="padding:6px;">Tên NV</th><th style="padding:6px;">Mã ST</th><th></th></tr></thead><tbody>
-        ${limit.map(n=>`<tr><td style="padding:6px;">${n.code}</td><td style="padding:6px;">${n.name}</td><td style="padding:6px;color:#888;">${n.sieuthiCode||'--'}</td><td><button class="btn btn-sm btn-danger" onclick="delMaster('nhanvien','${n.id}')">Xóa</button></td></tr>`).join('')}
-      </tbody></table>${filtered.length>100?`<p style="padding:8px;color:#888;font-size:11px;">... và ${filtered.length-100} kết quả khác</p>`:''}`;
-    }
-  }
-  updateStatChips();
-}
-
-function addMasterUser() {
-  const role = document.getElementById('newUserRole').value;
-  const c = document.getElementById('newUserCode').value.trim();
-  const n = document.getElementById('newUserName').value.trim();
-  if (!c || !n) return toast('error', 'Nhập đủ Mã và Tên!');
-
-  if (role === 'nganhhang') {
-    let u = DB.get('nhUsers') || [];
-    if (u.find(x => x.code.toUpperCase() === c.toUpperCase())) return toast('error', 'Mã Ngành Hàng đã tồn tại!');
-    u.push({ code: c.toUpperCase(), name: n });
-    DB.set('nhUsers', u);
-  } else if (role === 'qltp') {
-    let q = DB.get('qltpList') || [];
-    if (q.find(x => x.code === c)) return toast('error', 'Mã QLTP đã tồn tại!');
-    q.push({ code: c, name: n });
-    DB.set('qltpList', q);
-  }
-  toast('success', 'Thêm tài khoản thành công!');
-  populateReviewers();
-  renderMasterList('users');
-}
-
-function delUser(role, code) {
-  if (!confirm('Xóa tài khoản này?')) return;
-  if (role === 'nganhhang') {
-    DB.set('nhUsers', (DB.get('nhUsers')||[]).filter(u=>u.code!==code));
-  } else if (role === 'qltp') {
-    DB.set('qltpList', (DB.get('qltpList')||[]).filter(u=>u.code!==code));
-  }
-  populateReviewers();
-  renderMasterList('users');
-}
-
-function addMasterItem(type) {
-  const c = document.getElementById(`new${cap(type)}Code`).value.trim().toUpperCase();
-  const n = document.getElementById(`new${cap(type)}Name`).value.trim();
-  if (!c || !n) return toast('error', 'Nhập đủ Mã và Tên!');
-  let items = DB.get(type) || [];
-  if (items.find(x => x.code === c)) return toast('error', 'Trùng mã!');
-  const obj = { id: c, code: c, name: n };
-  if (type === 'sieuthi') obj.qltpCode = document.getElementById('newSieuthiQLTP').value.trim();
-  if (type === 'nhanvien') obj.sieuthiCode = document.getElementById('newNhanvienST').value.trim();
-  items.push(obj); DB.set(type, items);
-  toast('success', 'Thêm OK'); renderMasterList(type);
-}
-function delMaster(type, id) {
-  if (!confirm('Xóa?')) return;
-  DB.set(type, (DB.get(type)||[]).filter(x=>x.id!==id));
-  renderMasterList(type);
-}
-
-// ============================================================
-// HISTORY
-// ============================================================
-function openHistoryModal() {
-  let hist = DB.get('historyLog') || [];
-  if (currentRole !== 'admin') hist = hist.filter(h => h.user && h.user.includes(currentUser.code));
-  document.getElementById('historyBody').innerHTML = hist.length ? hist.map(h =>
-    `<tr><td style="padding:8px;white-space:nowrap;font-size:11px;">${h.time}</td><td style="padding:8px;font-weight:bold;font-size:11px;">${h.user}</td><td style="padding:8px;color:var(--blue);font-size:11px;">${h.action}</td><td style="padding:8px;font-size:11px;">${h.detail}</td></tr>`
-  ).join('') : `<tr><td colspan="4" align="center" style="padding:20px;color:#999;">Chưa có lịch sử</td></tr>`;
-  document.getElementById('btnClearHistory').style.display = currentRole === 'admin' ? 'block' : 'none';
-  showModal('historyModal');
-}
-function clearHistory() { if (!confirm('Xóa sạch lịch sử?')) return; DB.set('historyLog', []); openHistoryModal(); }
 
 // ============================================================
 // CẤU HÌNH GIÁ VÀ THƯỞNG THEO NGÀY
