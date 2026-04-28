@@ -164,6 +164,8 @@
 </style>
 </head>
 <body>
+<datalist id="listAutoST"></datalist>
+<datalist id="listAutoSP"></datalist>
 
 <div class="toast-container" id="toastContainer"></div>
 
@@ -585,7 +587,43 @@
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('masterDataModal')">Đóng</button></div>
   </div>
 </div>
-
+<div class="modal-overlay hidden" id="masterDataModal">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <h3>⚙ Master Data & Import Data</h3>
+      <button class="modal-close" onclick="closeModal('masterDataModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchMasterTab('importData')">📥 Import Data</button>
+        <button class="tab-btn" onclick="switchMasterTab('users')">👤 Quản lý User</button>
+        <button class="tab-btn" onclick="switchMasterTab('sieuthi')">🏪 Siêu thị</button>
+        <button class="tab-btn" onclick="switchMasterTab('sanpham')">📦 Sản phẩm</button>
+        <button class="tab-btn" onclick="switchMasterTab('nhanvien')">👥 Nhân viên</button>
+      </div>
+      <div id="masterTabImportData" class="tab-content active">
+        <p style="padding: 20px; color: #666;">Chức năng Import Master Data đang hoạt động ngầm. Vui lòng chọn các Tab bên cạnh để xem dữ liệu.</p>
+      </div>
+      <div id="masterTabUsers" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" id="searchUsers" class="form-control" placeholder="🔍 Tìm kiếm User..." oninput="renderMasterList('users')"></div>
+        <div id="masterUsersList"></div>
+      </div>
+      <div id="masterTabSieuthi" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" id="searchSieuthi" class="form-control" placeholder="🔍 Tìm Siêu thị..." oninput="renderMasterList('sieuthi')"></div>
+        <div id="masterSieuthiList"></div>
+      </div>
+      <div id="masterTabSanpham" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" id="searchSanpham" class="form-control" placeholder="🔍 Tìm Sản phẩm..." oninput="renderMasterList('sanpham')"></div>
+        <div id="masterSanphamList"></div>
+      </div>
+      <div id="masterTabNhanvien" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" id="searchNhanvien" class="form-control" placeholder="🔍 Tìm Nhân viên..." oninput="renderMasterList('nhanvien')"></div>
+        <div id="masterNhanvienList"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('masterDataModal')">Đóng</button></div>
+  </div>
+</div>
 <div class="modal-overlay hidden" id="detailModal">
   <div class="modal modal-lg">
     <div class="modal-header"><h3>🔍 Chi tiết đợt Biệt Kích</h3><button class="modal-close" onclick="closeModal('detailModal')">×</button></div>
