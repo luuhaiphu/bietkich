@@ -272,7 +272,7 @@
     <div class="action-bar">
       <button class="btn btn-export" onclick="exportExcel()">📥 Export (.xlsx)</button>
       <button class="btn btn-import" id="btnImportKhaiBao" onclick="openImportModal('khaibao')">📤 Import Khai Báo</button>
-      <a href="#" class="btn-link" onclick="downloadTemplateExcel('khaibao')">⬇ Tải Form Mẫu</a>
+      <a href="#" class="btn-link" id="btnDownloadTemplate" onclick="downloadTemplateExcel('khaibao')">⬇ Tải Form Mẫu</a>
       <button class="btn btn-danger" id="btnBulkDelete" style="display:none;" onclick="bulkDeleteRecords()">🗑 Xóa đã chọn</button>
       <div style="margin-left:auto; display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="openHistoryModal()">📜 Lịch Sử</button>
@@ -300,9 +300,9 @@
           <thead>
             <tr>
               <th style="width:36px; text-align:center;"></th>
-              <th>#</th><th>QLTP</th><th>Siêu thị</th><th>Ngày BK</th>
-              <th>Từ giờ</th><th>Đến giờ</th><th>Mã SP</th><th>Tên Sản phẩm</th>
-              <th>DS Nhân viên</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
+              <th>#</th><th>QLTP</th><th>Người duyệt</th><th>Siêu thị</th><th>Ngày BK</th>
+              <th>Giờ</th><th>Mã SP</th><th>Tên Sản phẩm</th>
+              <th>DS Nhân viên</th><th>Giá / Thưởng</th><th>Trạng thái</th><th>Thao tác</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -346,8 +346,8 @@
       </div>
       <div class="form-row-3">
         <div class="form-group"><label>Ngày Biệt Kích <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
-        <div class="form-group"><label>Từ giờ</label><input type="time" id="formTuGio" class="form-control"></div>
-        <div class="form-group"><label>Đến giờ</label><input type="time" id="formDenGio" class="form-control"></div>
+        <div class="form-group"><label>Từ giờ <small>(>=05:00)</small></label><input type="time" id="formTuGio" class="form-control"></div>
+        <div class="form-group"><label>Đến giờ <small>(<=22:00)</small></label><input type="time" id="formDenGio" class="form-control"></div>
       </div>
       <div class="form-group">
         <label>Sản phẩm <span style="color:red">*</span></label>
@@ -366,6 +366,11 @@
           <div class="dropdown-list hidden" id="dropNhanvien-list"></div>
           <div class="selected-tags" id="nhanvienSelected"></div>
         </div>
+      </div>
+      
+      <div class="form-group" style="margin-top: 15px;">
+        <label>Người duyệt (Ngành Hàng) <span style="color:red">*</span></label>
+        <select id="formReviewer" class="form-control"></select>
       </div>
 
       <div class="manual-notice" id="manualNotice">
@@ -386,6 +391,12 @@
     <div class="modal-header"><h3 id="importModalTitle">📤 Import Excel</h3><button class="modal-close" onclick="closeModal('importModal')">×</button></div>
     <div class="modal-body">
       <div style="background:#e8f4f8; padding:10px; border-left:4px solid var(--blue); margin-bottom:15px;" id="importGuideText"></div>
+      
+      <div class="form-group" style="margin-bottom: 15px; background: #fff3cd; padding: 10px; border-radius: 6px; border: 1px solid #ffe082;">
+        <label>Chọn Người duyệt (Ngành Hàng) cho lô này <span style="color:red">*</span></label>
+        <select id="importReviewer" class="form-control" style="background: white;"></select>
+      </div>
+
       <div class="upload-zone" onclick="document.getElementById('fileImportInput').click()">
         <input type="file" id="fileImportInput" accept=".xlsx,.xls" style="display:none" onchange="handleExcelUpload(event)">
         <div style="font-size:36px; color:var(--blue); margin-bottom:8px;">📄</div>
@@ -504,6 +515,9 @@
       </div>
 
       <div id="masterTabUsers" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #ddd;">
+          <input type="text" id="searchUsers" class="form-control" placeholder="🔍 Tìm kiếm User..." oninput="renderMasterList('users')" style="flex:1; min-width:200px; border-color:var(--blue);">
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
           <select id="newUserRole" class="form-control" style="width:120px;">
             <option value="nganhhang">Ngành Hàng</option>
@@ -517,6 +531,9 @@
       </div>
 
       <div id="masterTabSieuthi" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #ddd;">
+          <input type="text" id="searchSieuthi" class="form-control" placeholder="🔍 Tìm kiếm Mã / Tên Siêu thị..." oninput="renderMasterList('sieuthi')" style="flex:1; min-width:200px; border-color:var(--blue);">
+        </div>
         <div style="margin-bottom:10px; font-size:12px; color:#888;">Data siêu thị được import từ File Phân Bổ. Bạn có thể thêm thủ công bên dưới.</div>
         <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
           <input type="text" id="newSieuthiCode" class="form-control" placeholder="Mã ST (MST)" style="width:100px;">
@@ -528,6 +545,9 @@
       </div>
 
       <div id="masterTabSanpham" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #ddd;">
+          <input type="text" id="searchSanpham" class="form-control" placeholder="🔍 Tìm kiếm Mã / Tên Sản phẩm..." oninput="renderMasterList('sanpham')" style="flex:1; min-width:200px; border-color:var(--blue);">
+        </div>
         <div style="margin-bottom:10px; font-size:12px; color:#888;">Data sản phẩm được import từ File FMCG & Fresh. Bạn có thể thêm thủ công.</div>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
           <input type="text" id="newSanphamCode" class="form-control" placeholder="Mã SP" style="width:160px;">
@@ -538,6 +558,9 @@
       </div>
 
       <div id="masterTabNhanvien" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #ddd;">
+          <input type="text" id="searchNhanvien" class="form-control" placeholder="🔍 Tìm kiếm Mã / Tên Nhân viên..." oninput="renderMasterList('nhanvien')" style="flex:1; min-width:200px; border-color:var(--blue);">
+        </div>
         <div style="margin-bottom:10px; font-size:12px; color:#888;">Data NV được import từ File Nhân Viên. Bạn có thể thêm thủ công.</div>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
           <input type="text" id="newNhanvienCode" class="form-control" placeholder="Mã NV" style="width:140px;">
@@ -628,6 +651,6 @@
   </div>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=1.1"></script>
 </body>
 </html>
