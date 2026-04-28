@@ -112,10 +112,16 @@ function pMoney(str) {
   return str.toString().replace(/,/g, '');
 }
 
+// ÉP CHUẨN DD/MM/YYYY TOÀN HỆ THỐNG
 function fDate(isoDate) {
   if (!isoDate) return '';
+  // Nếu có chứa giờ (T) thì cắt bỏ lấy ngày
+  if (isoDate.includes('T')) isoDate = isoDate.split('T')[0];
   const parts = isoDate.split('-');
-  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  // Nếu format đang là YYYY-MM-DD -> chuyển thành DD/MM/YYYY
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
   return isoDate;
 }
 
@@ -307,21 +313,14 @@ function suggestQLTP(val) {
   const filtered = qltps.filter(x => x.code.toLowerCase().includes(q) || x.name.toLowerCase().includes(q)).slice(0, 10);
   if (!filtered.length) { suggest.classList.add('hidden'); document.getElementById('qltpConfirm').style.display='none'; return; }
   
-  // Sửa lỗi #6: onmousedown thay vì onclick
+  // FIX CHUỘT CLICK: Đổi thành onclick
   suggest.innerHTML = filtered.map(x =>
-    `<div class="login-suggest-item" onmousedown="selectQLTPLogin('${x.code}','${x.name.replace(/'/g,"\\'")}')">
+    `<div class="login-suggest-item" onclick="selectQLTPLogin('${x.code}','${x.name.replace(/'/g,"\\'")}')">
       <span class="mst">${x.code}</span>
       <span class="name">${x.name}</span>
     </div>`
   ).join('');
   suggest.classList.remove('hidden');
-  
-  const exact = qltps.find(x => x.code === val.trim());
-  if (exact) {
-    document.getElementById('qltpConfirm').style.display='block';
-    document.getElementById('qltpConfirmText').textContent = `${exact.code} — ${exact.name}`;
-    suggest.classList.add('hidden');
-  }
 }
 
 function selectQLTPLogin(code, name) {
@@ -329,6 +328,8 @@ function selectQLTPLogin(code, name) {
   document.getElementById('qltpSuggest').classList.add('hidden');
   document.getElementById('qltpConfirm').style.display = 'block';
   document.getElementById('qltpConfirmText').textContent = `${code} — ${name}`;
+  // FIX: Tự động vô hệ thống sau khi chọn Suggest
+  handleLogin();
 }
 
 function handleLogin() {
@@ -372,12 +373,13 @@ function finishLogin() {
   document.getElementById('appContainer').classList.remove('blurred');
   const roleLabel = { admin: 'ADMIN', nganhhang: 'NGÀNH HÀNG', qltp: 'QLTP' }[currentRole];
   document.getElementById('headerUserName').textContent = `${currentUser.name} (${currentUser.code} — ${roleLabel})`;
-  document.getElementById('roleStatusText').textContent = `Phân hệ: ${roleLabel} | ${currentUser.name} (${currentUser.code})`;
   updateRoleUI();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]; // input type="date" bắt buộc YYYY-MM-DD
   document.getElementById('filterTuNgay').value = today;
   document.getElementById('filterDenNgay').value = today;
   logAction('ĐĂNG NHẬP', `Phân hệ ${roleLabel}`);
+  
+  buildFilterDatalist();
   loadTable();
 }
 
@@ -415,13 +417,25 @@ function submitChangePass() {
 }
 
 // ============================================================
+// BỘ LỌC TỰ GỢI Ý MÃ - TÊN SIÊU THỊ
+// ============================================================
+function buildFilterDatalist() {
+  let stList = DB.get('sieuthi') || [];
+  if (currentRole === 'qltp') {
+    stList = stList.filter(s => s.qltpCode === currentUser.code);
+  }
+  const dl = document.getElementById('listFilterST');
+  if (dl) {
+    dl.innerHTML = stList.map(s => `<option value="[${s.code}] ${s.name}">`).join('');
+  }
+}
+
+// ============================================================
 // TABLE
 // ============================================================
 function loadTable() {
   let all = DB.get('declarations') || [];
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
-  
-  // Sửa lỗi #7: Ngành hàng mặc định chỉ thấy đơn của mình
   if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code); 
 
   const fST = document.getElementById('filterSieuthi').value.toLowerCase();
@@ -430,7 +444,8 @@ function loadTable() {
   const fSt = document.getElementById('filterStatus').value;
 
   filteredDeclarations = all.filter(d => {
-    const chuoiTimKiem = ((d.sieuthiCode || '') + ' - ' + (d.sieuthiName || '')).toLowerCase();
+    // Cho phép tìm bằng tên hoặc chuỗi [Mã] Tên
+    const chuoiTimKiem = ((d.sieuthiCode || '') + ' ' + (d.sieuthiName || '')).toLowerCase();
     if (fST && !chuoiTimKiem.includes(fST)) return false;
     if (fFr && d.ngay < fFr) return false;
     if (fTo && d.ngay > fTo) return false;
@@ -440,7 +455,6 @@ function loadTable() {
 
   document.getElementById('totalCount').textContent = `Tổng: ${filteredDeclarations.length} bản ghi`;
   
-  // Sửa lỗi #7: Cập nhật badge (chấm đỏ báo số đơn cần duyệt cho NH)
   if (currentRole === 'nganhhang' || currentRole === 'admin') {
     const allDecls = DB.get('declarations') || [];
     const pendingCount = currentRole === 'nganhhang' 
@@ -475,10 +489,9 @@ function renderTable() {
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
     let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁</button> `;
-    if ((currentRole==='qltp'||currentRole==='admin') && d.status==='rejected')
+    if ((currentRole==='qltp'||currentRole==='admin') && (d.status==='rejected' || d.status==='draft'))
       acts += `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">✏</button> `;
     
-    // Tích hợp Smart Approval
     if (d.status === 'pending') {
       if (currentRole === 'admin' || (currentRole === 'nganhhang' && d.reviewerCode === currentUser.code)) {
         acts += `<button class="btn btn-sm btn-success" onclick="openSmartApproval('${d.id}')">✅</button> <button class="btn btn-sm btn-danger" onclick="openRejectModal('${d.id}')">❌</button> `;
@@ -561,7 +574,6 @@ function filterDrop(field, query) {
 
   let html = items.map(it => {
     const safeItem = JSON.stringify(it).replace(/"/g,'&quot;');
-    // Sửa lỗi #3: Hiện Mã + Tên ST
     if (field === 'sieuthi') {
       return `<div class="dropdown-item" onmousedown="selectDropItem('${field}', ${safeItem})">
         <span><b style="color:var(--green)">[${it.code}]</b> ${it.name}</span>
@@ -592,7 +604,6 @@ function selectDropItem(field, item) {
     if (!dropSel.nhanvien.find(n => n.id === item.id)) dropSel.nhanvien.push({ ...item, isManual: false });
   } else {
     dropSel[field] = { ...item, isManual: false };
-    // Sửa lỗi #3: Input fill Mã + Tên ST
     document.getElementById(`input${cap(field)}`).value = field === 'sieuthi' ? `[${item.code}] ${item.name}` : item.name;
   }
   renderTags(field);
@@ -724,7 +735,7 @@ function submitForm() {
 }
 
 // ============================================================
-// FIX #8: SMART APPROVAL & WORKFLOW
+// SMART APPROVAL
 // ============================================================
 function openSmartApproval(id) {
   const decls = DB.get('declarations') || [];
@@ -825,7 +836,6 @@ function confirmSmartApproval() {
   loadTable();
 }
 
-function approveRecord(id) { let d = DB.get('declarations') || []; d.find(x => x.id === id).status = 'approved'; DB.set('declarations', d); logAction('DUYỆT', id); loadTable(); toast('success', 'Đã duyệt!'); }
 function openRejectModal(id) { rejectTargetId = id; document.getElementById('rejectReasonInput').value = ''; showModal('rejectModal'); }
 function confirmReject() {
   const rs = document.getElementById('rejectReasonInput').value; if (!rs) return toast('error', 'Nhập lý do!');
@@ -835,7 +845,6 @@ function confirmReject() {
   DB.set('declarations', decls); logAction('TỪ CHỐI', rs); closeModal('rejectModal'); loadTable(); toast('warning', 'Đã từ chối');
 }
 
-// Sửa Lỗi #5: bulkApprove không chọn vẫn OK
 function bulkApprove() { 
   if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!');
   let d = DB.get('declarations') || []; 
@@ -865,7 +874,7 @@ function openDetail(id) {
   document.getElementById('detailModalBody').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
       <div><b>Mã đơn:</b> ${d.id}</div><div><b>Trạng thái:</b> ${{pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'}[d.status]}</div>
-      <div><b>Người tạo:</b> ${d.authorName} (${d.authorCode})</div><div><b>Ngày tạo:</b> ${(d.createdAt||'').split('T')[0]}</div>
+      <div><b>Người tạo:</b> ${d.authorName} (${d.authorCode})</div><div><b>Ngày tạo:</b> ${fDate(d.createdAt)}</div>
       <div><b>Người duyệt:</b> ${d.reviewerName ? `${d.reviewerName} (${d.reviewerCode})` : '--'}</div><div><b>Ngày BK:</b> ${fDate(d.ngay)}</div>
       <div><b>Siêu thị:</b> ${d.sieuthiName}</div><div><b>Giờ:</b> ${d.tuGio||'--'} → ${d.denGio||'--'}</div>
       <div style="grid-column: span 2;"><b>Sản phẩm:</b> [${d.sanphamCode}] ${d.sanphamName}</div>
@@ -923,7 +932,7 @@ function copyManualList() {
 // EXPORT & IMPORT KHAI BÁO / CẤU HÌNH
 // ============================================================
 function exportExcel() {
-  const data = filteredDeclarations.map(d => [d.id, d.authorName, d.authorCode, d.reviewerName, d.reviewerCode, d.sieuthiName, d.ngay, d.tuGio||'', d.denGio||'', d.sanphamCode, d.sanphamName, (d.nhanvienList||[]).map(n=>n.name).join(';'), d.status, d.createdAt]);
+  const data = filteredDeclarations.map(d => [d.id, d.authorName, d.authorCode, d.reviewerName, d.reviewerCode, d.sieuthiName, fDate(d.ngay), d.tuGio||'', d.denGio||'', d.sanphamCode, d.sanphamName, (d.nhanvienList||[]).map(n=>n.name).join(';'), d.status, fDate(d.createdAt)]);
   const ws = XLSX.utils.aoa_to_sheet([['Mã Đơn','Tạo bởi','Mã QLTP','Người duyệt','Mã NH','Siêu thị','Ngày','Từ giờ','Đến giờ','Mã SP','Tên SP','DS NV','Trạng thái','Ngày tạo'], ...data]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KhaiBao");
   XLSX.writeFile(wb, `BietKich_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -932,21 +941,20 @@ function exportExcel() {
 
 function downloadTemplateExcel(type) {
   const d = [
-    ['Siêu thị (Mã hoặc Tên)','Ngày (YYYY-MM-DD)','Từ giờ (HH:MM)','Đến giờ (HH:MM)','Mã SP','Tên SP','DS NV (cách nhau ;)'],
-    ['BHX_HCM_001','2026-04-25','08:00','20:00','1053090000397','BÁNH DD AFC VỊ LÚA MÌ','108332 - Trương Thị Kiều; 270445 - Đỗ Ngọc Anh']
+    ['Siêu thị (Mã hoặc Tên)','Ngày (DD/MM/YYYY)','Từ giờ (HH:MM)','Đến giờ (HH:MM)','Mã SP','Tên SP','DS NV (cách nhau ;)'],
+    ['BHX_HCM_001','25/04/2026','08:00','20:00','1053090000397','BÁNH DD AFC VỊ LÚA MÌ','108332 - Trương Thị Kiều; 270445 - Đỗ Ngọc Anh']
   ];
   const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template");
   XLSX.writeFile(wb, 'Template_KhaiBao.xlsx');
 }
 
-// Sửa Lỗi #2: Hàm tải form cấu hình giá
 function downloadPriceTemplateExcel() {
   const d = [
-    ['Mã SP','Tên Siêu Thị','Ngày (YYYY-MM-DD)','Loại thưởng','Giá bán','Mức thưởng'],
-    ['1053090000397','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','2026-04-25','Tiền cố định','25000','5000'],
-    ['1053090000397','BHX_HCM_002 - Lý Thường Kiệt','2026-04-25','% Lãi gộp','25000','15'],
-    ['2000000001234','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','2026-04-26','Sản lượng','30000','2000']
+    ['Mã SP','Tên Siêu Thị','Ngày (DD/MM/YYYY)','Loại thưởng','Giá bán','Mức thưởng'],
+    ['1053090000397','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','25/04/2026','Tiền cố định','25000','5000'],
+    ['1053090000397','BHX_HCM_002 - Lý Thường Kiệt','25/04/2026','% Lãi gộp','25000','15'],
+    ['2000000001234','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','26/04/2026','Sản lượng','30000','2000']
   ];
   const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template_CauHinhGia");
@@ -954,20 +962,19 @@ function downloadPriceTemplateExcel() {
   toast('success', '✅ Đã tải file mẫu cấu hình giá!');
 }
 
-// Sửa Lỗi #1: Tránh đen nền Modal đè Modal
 function openImportModal(ctx) {
   importContext = ctx;
   if (ctx === 'priceconfig') {
-    closeModal('priceConfigModal'); // Đóng cái cũ trước
+    closeModal('priceConfigModal'); 
   }
   
   if (ctx === 'khaibao') {
     document.getElementById('importModalTitle').textContent = '📤 Import Khai Báo (.xlsx)';
-    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Siêu thị | Ngày (YYYY-MM-DD) | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV (cách nhau ;)</b>';
+    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Siêu thị | Ngày (DD/MM/YYYY) | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV (cách nhau ;)</b>';
     document.getElementById('importReviewerWrap').style.display = 'block';
   } else {
     document.getElementById('importModalTitle').textContent = '📤 Import Cấu Hình Giá (.xlsx)';
-    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Mã SP | Tên Siêu Thị | Ngày (YYYY-MM-DD) | Loại thưởng | Giá bán | Mức thưởng</b>';
+    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Mã SP | Tên Siêu Thị | Ngày (DD/MM/YYYY) | Loại thưởng | Giá bán | Mức thưởng</b>';
     document.getElementById('importReviewerWrap').style.display = 'none';
   }
   document.getElementById('fileImportInput').value = '';
@@ -1005,7 +1012,13 @@ function parseImportKB(rows) {
     if (currentRole === 'qltp' && stObj && stObj.qltpCode !== currentUser.code) errs.push('ST ngoài quyền');
     
     let pDt = dt; 
-    if (dt.includes('/')) { try { const [d,m,y] = dt.split('/'); pDt = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; } catch {} }
+    if (dt.includes('/')) { 
+      try { 
+        const parts = dt.split('/'); 
+        if(parts[0].length === 4) pDt = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        else pDt = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; 
+      } catch {} 
+    }
     if (!pDt || pDt.includes('undefined')) errs.push('Sai ngày');
 
     if (t1 && t2) {
@@ -1045,7 +1058,13 @@ function parseImportPrice(rows) {
     const spC = String(r[0]||'').trim(), stN = String(r[1]||'').trim(), dt = String(r[2]||'').trim(), type = String(r[3]||'Tiền cố định').trim(), price = String(r[4]||'0').trim(), reward = String(r[5]||'0').trim();
     
     let pDt = dt; 
-    if (dt.includes('/')) { try { const [d,m,y] = dt.split('/'); pDt = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; } catch {} }
+    if (dt.includes('/')) { 
+      try { 
+        const parts = dt.split('/'); 
+        if(parts[0].length === 4) pDt = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        else pDt = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; 
+      } catch {} 
+    }
 
     if (spC && stN && pDt) {
       parsedBulkRows.push({sanphamCode: spC, sieuthiName: stN, date: pDt, rewardType: type, price: pMoney(price), reward: pMoney(reward)});
@@ -1083,7 +1102,6 @@ function submitBulkImport() {
     logAction('IMPORT GIÁ/THƯỞNG', parsedBulkRows.length + ' dòng');
     closeModal('importModal');
     
-    // Tự động duyệt thông minh
     const allDecls = DB.get('declarations') || [];
     const matchedPending = allDecls.filter(d => {
       if (d.status !== 'pending') return false;
@@ -1097,7 +1115,7 @@ function submitBulkImport() {
         showModal('autoApproveModal');
       }, 300);
     } else {
-      toast('success', `Import ${parsedBulkRows.length} cấu hình giá thành công!`);
+      toast('success', `Import thành công!`);
       if (document.getElementById('priceConfigModal') && !document.getElementById('priceConfigModal').classList.contains('hidden')) {
         renderPriceConfigList();
       }
