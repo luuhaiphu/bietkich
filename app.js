@@ -381,16 +381,7 @@ function finishLogin() {
   loadTable();
 }
 
-function logout() {
-  currentUser = null; currentRole = null;
-  document.getElementById('appContainer').classList.add('blurred');
-  document.getElementById('loginOverlay').style.display = 'flex';
-  document.getElementById('loginRole').value = '';
-  ['grpQLTP','grpNH','grpAdmin'].forEach(id => document.getElementById(id).style.display = 'none');
-  document.getElementById('loginHint').style.display = 'none';
-  document.getElementById('qltpConfirm').style.display = 'none';
-  document.getElementById('loginCodeQLTP').value = '';
-}
+function logout() { location.reload(); }
 
 function updateRoleUI() {
   const isAd = currentRole === 'admin', isNH = currentRole === 'nganhhang', isQL = currentRole === 'qltp';
@@ -420,7 +411,7 @@ function submitChangePass() {
 function loadTable() {
   let all = DB.get('declarations') || [];
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
-  if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code); // Phân quyền duyệt của NH
+  if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code);
 
   const fST = document.getElementById('filterSieuthi').value.toLowerCase();
   const fFr = document.getElementById('filterTuNgay').value;
@@ -453,17 +444,17 @@ function renderTable() {
     const stTag = d.isManualSieuthi ? `<span class="manual-tag">⚠ ${d.sieuthiName}</span>` : d.sieuthiName;
     const spTag = d.isManualSanpham ? `<span class="manual-tag">⚠ ${d.sanphamName}</span>` : `[${d.sanphamCode}] ${d.sanphamName}`;
     const nvTags = (d.nhanvienList||[]).map(n => n.isManual ? `<span class="manual-tag">⚠ ${n.name}</span>` : n.name).join(', ');
-    const stat = { draft:'<span class="badge badge-draft">Nháp</span>', pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
+    const stat = { pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
     
-    // Xử lý hiển thị Giá / Thưởng công khai
-    let pc = priceCfgs.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName);
+    // So khớp cấu hình giá (Mã SP + Tên ST + Ngày)
+    let pc = priceCfgs.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
     let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁</button> `;
-    if ((currentRole==='qltp'||currentRole==='admin') && (d.status==='draft'||d.status==='rejected'))
-      acts += `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">✏</button> <button class="btn btn-sm btn-warning" onclick="submitForApproval('${d.id}')" title="Gửi duyệt">📤</button> `;
+    if ((currentRole==='qltp'||currentRole==='admin') && (d.status==='rejected'))
+      acts += `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">✏</button> `;
     
-    // Quyền Admin Override phê duyệt
+    // Phân quyền Duyệt
     if (d.status === 'pending') {
       if (currentRole === 'admin' || (currentRole === 'nganhhang' && d.reviewerCode === currentUser.code)) {
         acts += `<button class="btn btn-sm btn-success" onclick="approveRecord('${d.id}')">✅</button> <button class="btn btn-sm btn-danger" onclick="openRejectModal('${d.id}')">❌</button> `;
@@ -632,7 +623,7 @@ document.addEventListener('click', e => {
 });
 
 // ============================================================
-// TẠO / SỬA
+// TẠO / SỬA (Lưu trạng thái Pending ngay)
 // ============================================================
 function openCreateModal() {
   currentEditId = null;
@@ -691,17 +682,16 @@ function submitForm() {
   let decls = DB.get('declarations') || [];
   if (currentEditId) {
     let idx = decls.findIndex(x => x.id === currentEditId);
-    decls[idx] = { ...decls[idx], sieuthiId: st.id, sieuthiCode: st.code, sieuthiName: st.name, isManualSieuthi: st.isManual, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual, nhanvienList: nv, ngay, tuGio: tG, denGio: dG, reviewerCode: rCode, reviewerName: rName, status: 'draft', updatedAt: new Date().toISOString() };
-    toast('success', 'Cập nhật thành công!'); logAction('SỬA ĐƠN', currentEditId);
+    decls[idx] = { ...decls[idx], sieuthiId: st.id, sieuthiCode: st.code, sieuthiName: st.name, isManualSieuthi: st.isManual, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual, nhanvienList: nv, ngay, tuGio: tG, denGio: dG, reviewerCode: rCode, reviewerName: rName, status: 'pending', updatedAt: new Date().toISOString() };
+    toast('success', 'Cập nhật và Gửi duyệt thành công!'); logAction('SỬA ĐƠN', currentEditId);
   } else {
-    decls.unshift({ id: 'BK' + Date.now().toString().slice(-8), authorCode: currentUser.code, authorName: currentUser.name, sieuthiId: st.id, sieuthiCode: st.code||'', sieuthiName: st.name, isManualSieuthi: st.isManual||false, ngay, tuGio: tG, denGio: dG, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual||false, nhanvienList: nv, reviewerCode: rCode, reviewerName: rName, status: 'draft', createdAt: new Date().toISOString(), rejectReason: '' });
-    toast('success', 'Tạo mới thành công!'); logAction('TẠO ĐƠN', '');
+    decls.unshift({ id: 'BK' + Date.now().toString().slice(-8), authorCode: currentUser.code, authorName: currentUser.name, sieuthiId: st.id, sieuthiCode: st.code||'', sieuthiName: st.name, isManualSieuthi: st.isManual||false, ngay, tuGio: tG, denGio: dG, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual||false, nhanvienList: nv, reviewerCode: rCode, reviewerName: rName, status: 'pending', createdAt: new Date().toISOString(), rejectReason: '' });
+    toast('success', 'Tạo mới và Gửi duyệt thành công!'); logAction('TẠO ĐƠN', '');
   }
   DB.set('declarations', decls); closeModal('createModal'); loadTable();
 }
 
-// WORKFLOW
-function submitForApproval(id) { let d = DB.get('declarations') || []; d.find(x => x.id === id).status = 'pending'; DB.set('declarations', d); logAction('GỬI DUYỆT', id); loadTable(); toast('success', 'Đã gửi duyệt!'); }
+// WORKFLOW DUYỆT
 function approveRecord(id) { let d = DB.get('declarations') || []; d.find(x => x.id === id).status = 'approved'; DB.set('declarations', d); logAction('DUYỆT', id); loadTable(); toast('success', 'Đã duyệt!'); }
 function openRejectModal(id) { rejectTargetId = id; document.getElementById('rejectReasonInput').value = ''; showModal('rejectModal'); }
 function confirmReject() {
@@ -721,8 +711,8 @@ function deleteRecord(id) { if (!confirm('Xóa bản ghi này?')) return; let d 
 
 function openDetail(id) {
   const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return;
-  const pc = (DB.get('priceConfig') || []).find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName);
-  const pHtml = pc ? `<div style="background:#e8f4f8;padding:10px;border-radius:4px;"><b>Loại:</b> ${pc.rewardType} | <b>Giá bán:</b> ${fMoney(pc.price)}đ | <b>Mức thưởng:</b> ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#888">Chưa có cấu hình giá</i>`;
+  const pc = (DB.get('priceConfig') || []).find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+  const pHtml = pc ? `<div style="background:#e8f4f8;padding:10px;border-radius:4px;"><b>Loại:</b> ${pc.rewardType} | <b>Giá bán:</b> ${fMoney(pc.price)}đ | <b>Mức thưởng:</b> ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#888">Chưa có cấu hình giá cho ngày này</i>`;
   const manuals = [];
   if (d.isManualSieuthi) manuals.push(`⚠ Siêu thị nhập tay: ${d.sieuthiName}`);
   if (d.isManualSanpham) manuals.push(`⚠ Sản phẩm nhập tay: ${d.sanphamName}`);
@@ -730,7 +720,7 @@ function openDetail(id) {
   const manualHtml = manuals.length ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:8px;margin-top:10px;font-size:12px;"><b>⚠ Dữ liệu nhập tay — cần gửi Admin:</b><br>${manuals.join('<br>')}</div>` : '';
   document.getElementById('detailModalBody').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-      <div><b>Mã đơn:</b> ${d.id}</div><div><b>Trạng thái:</b> ${{draft:'Nháp',pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'}[d.status]}</div>
+      <div><b>Mã đơn:</b> ${d.id}</div><div><b>Trạng thái:</b> ${{pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'}[d.status]}</div>
       <div><b>Người tạo:</b> ${d.authorName} (${d.authorCode})</div><div><b>Ngày tạo:</b> ${(d.createdAt||'').split('T')[0]}</div>
       <div><b>Người duyệt:</b> ${d.reviewerName ? `${d.reviewerName} (${d.reviewerCode})` : '--'}</div><div><b>Ngày BK:</b> ${(d.ngay||'').split('-').reverse().join('/')}</div>
       <div><b>Siêu thị:</b> ${d.sieuthiName}</div><div><b>Giờ:</b> ${d.tuGio||'--'} → ${d.denGio||'--'}</div>
@@ -786,7 +776,7 @@ function copyManualList() {
 }
 
 // ============================================================
-// EXPORT & IMPORT KHAI BÁO
+// EXPORT & IMPORT KHAI BÁO / CẤU HÌNH
 // ============================================================
 function exportExcel() {
   const data = filteredDeclarations.map(d => [d.id, d.authorName, d.authorCode, d.reviewerName, d.reviewerCode, d.sieuthiName, d.ngay, d.tuGio||'', d.denGio||'', d.sanphamCode, d.sanphamName, (d.nhanvienList||[]).map(n=>n.name).join(';'), d.status, d.createdAt]);
@@ -798,8 +788,8 @@ function exportExcel() {
 
 function downloadTemplateExcel(type) {
   const d = [
-    ['Siêu thị (Mã hoặc Tên)','Ngày (DD/MM/YYYY)','Từ giờ (HH:MM)','Đến giờ (HH:MM)','Mã SP','Tên SP','DS NV (cách nhau ;)'],
-    ['BHX_HCM_001','25/04/2026','08:00','20:00','1053090000397','BÁNH DD AFC VỊ LÚA MÌ','108332 - Trương Thị Kiều; 270445 - Đỗ Ngọc Anh']
+    ['Siêu thị (Mã hoặc Tên)','Ngày (YYYY-MM-DD)','Từ giờ (HH:MM)','Đến giờ (HH:MM)','Mã SP','Tên SP','DS NV (cách nhau ;)'],
+    ['BHX_HCM_001','2026-04-25','08:00','20:00','1053090000397','BÁNH DD AFC VỊ LÚA MÌ','108332 - Trương Thị Kiều; 270445 - Đỗ Ngọc Anh']
   ];
   const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -808,8 +798,15 @@ function downloadTemplateExcel(type) {
 
 function openImportModal(ctx) {
   importContext = ctx;
-  document.getElementById('importModalTitle').textContent = '📤 Import Khai Báo (.xlsx)';
-  document.getElementById('importGuideText').innerHTML = 'Cột: <b>Siêu thị | Ngày (DD/MM/YYYY) | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV (cách nhau ;)</b>';
+  if (ctx === 'khaibao') {
+    document.getElementById('importModalTitle').textContent = '📤 Import Khai Báo (.xlsx)';
+    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Siêu thị | Ngày (YYYY-MM-DD) | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV (cách nhau ;)</b>';
+    document.getElementById('importReviewerWrap').style.display = 'block';
+  } else {
+    document.getElementById('importModalTitle').textContent = '📤 Import Cấu Hình Giá (.xlsx)';
+    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Mã SP | Tên Siêu Thị | Ngày (YYYY-MM-DD) | Loại thưởng | Giá bán | Mức thưởng</b>';
+    document.getElementById('importReviewerWrap').style.display = 'none';
+  }
   document.getElementById('fileImportInput').value = '';
   document.getElementById('importReviewer').value = '';
   document.getElementById('bulkPreview').innerHTML = '';
@@ -824,7 +821,8 @@ function handleExcelUpload(e) {
     const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
     if (rows.length < 2) return toast('error', 'File rỗng!');
-    parseImportKB(rows.slice(1));
+    if (importContext === 'khaibao') parseImportKB(rows.slice(1));
+    else parseImportPrice(rows.slice(1));
   };
   r.readAsArrayBuffer(f);
 }
@@ -843,7 +841,9 @@ function parseImportKB(rows) {
     if (!stObj) { isWarn = true; }
     if (currentRole === 'qltp' && stObj && stObj.qltpCode !== currentUser.code) errs.push('ST ngoài quyền');
     
-    let pDt = ''; try { const [d,m,y] = dt.split('/'); pDt = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; } catch {}
+    // Xử lý chuỗi ngày (Excel đôi khi đưa ra format YYYY-MM-DD hoặc DD/MM/YYYY)
+    let pDt = dt; 
+    if (dt.includes('/')) { try { const [d,m,y] = dt.split('/'); pDt = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; } catch {} }
     if (!pDt || pDt.includes('undefined')) errs.push('Sai ngày');
 
     if (t1 && t2) {
@@ -853,7 +853,7 @@ function parseImportKB(rows) {
 
     let spObj = mstSP.find(s => s.code === spC || s.name.toLowerCase() === spN.toLowerCase());
     
-    // Tối ưu bóc tách Mã Nhân Viên
+    // Tối ưu bóc tách Mã Nhân Viên (Regex ^\d+)
     let nvs = nvRaw.split(';').filter(x=>x.trim()).map(n => {
       n = n.trim();
       let matchCode = n.match(/^(\d+)/);
@@ -876,28 +876,65 @@ function parseImportKB(rows) {
   document.getElementById('btnImportSubmit').disabled = valid === 0;
 }
 
-function submitBulkImport() {
-  const rCode = document.getElementById('importReviewer').value;
-  if (!rCode) return toast('error', 'Vui lòng chọn Người duyệt (Ngành Hàng) cho lô này!');
-  const rName = (DB.get('nhUsers')||[]).find(x=>x.code===rCode)?.name || '';
+function parseImportPrice(rows) {
+  parsedBulkRows = [];
+  let html = '', valid = 0, errors = 0;
+  rows.forEach((r, i) => {
+    if (!r[0]) return;
+    const spC = String(r[0]||'').trim(), stN = String(r[1]||'').trim(), dt = String(r[2]||'').trim(), type = String(r[3]||'Tiền cố định').trim(), price = String(r[4]||'0').trim(), reward = String(r[5]||'0').trim();
+    
+    let pDt = dt; 
+    if (dt.includes('/')) { try { const [d,m,y] = dt.split('/'); pDt = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; } catch {} }
 
-  let d = DB.get('declarations') || [];
-  parsedBulkRows.forEach(r => {
-    d.unshift({ id: 'BK' + Date.now().toString().slice(-8) + Math.random().toString(36).slice(-3), authorCode: currentUser.code, authorName: currentUser.name, sieuthiId: r.stId, sieuthiCode: r.stCode, sieuthiName: r.stName, isManualSieuthi: r.isManualST, ngay: r.ngay, tuGio: r.tuGio, denGio: r.denGio, sanphamId: r.spId, sanphamCode: r.spCode, sanphamName: r.spName, isManualSanpham: r.isManualSP, nhanvienList: r.nvParsed, reviewerCode: rCode, reviewerName: rName, status: 'draft', createdAt: new Date().toISOString(), rejectReason: '' });
+    if (spC && stN && pDt) {
+      parsedBulkRows.push({sanphamCode: spC, sieuthiName: stN, date: pDt, rewardType: type, price: pMoney(price), reward: pMoney(reward)});
+      html += `<div class="bulk-row valid">✅ ${spC} | ${stN} | ${pDt} | Giá: ${fMoney(price)}</div>`;
+      valid++;
+    } else {
+      html += `<div class="bulk-row error">❌ Lỗi dòng ${i+2}: Thiếu SP, ST hoặc Ngày</div>`;
+      errors++;
+    }
   });
-  DB.set('declarations', d);
-  logAction('IMPORT KB', parsedBulkRows.length + ' dòng');
-  closeModal('importModal'); toast('success', `Import ${parsedBulkRows.length} đơn thành công!`); loadTable();
+  document.getElementById('bulkPreview').innerHTML = `<div style="padding:8px;font-weight:bold;border-bottom:1px solid #eee;">Hợp lệ: <span style="color:green">${valid}</span> | Lỗi: <span style="color:red">${errors}</span></div>${html}`;
+  document.getElementById('btnImportSubmit').disabled = valid === 0;
+}
+
+function submitBulkImport() {
+  if (importContext === 'khaibao') {
+    const rCode = document.getElementById('importReviewer').value;
+    if (!rCode) return toast('error', 'Vui lòng chọn Người duyệt (Ngành Hàng) cho lô này!');
+    const rName = (DB.get('nhUsers')||[]).find(x=>x.code===rCode)?.name || '';
+
+    let d = DB.get('declarations') || [];
+    parsedBulkRows.forEach(r => {
+      d.unshift({ id: 'BK' + Date.now().toString().slice(-8) + Math.random().toString(36).slice(-3), authorCode: currentUser.code, authorName: currentUser.name, sieuthiId: r.stId, sieuthiCode: r.stCode, sieuthiName: r.stName, isManualSieuthi: r.isManualST, ngay: r.ngay, tuGio: r.tuGio, denGio: r.denGio, sanphamId: r.spId, sanphamCode: r.spCode, sanphamName: r.spName, isManualSanpham: r.isManualSP, nhanvienList: r.nvParsed, reviewerCode: rCode, reviewerName: rName, status: 'pending', createdAt: new Date().toISOString(), rejectReason: '' });
+    });
+    DB.set('declarations', d);
+    logAction('IMPORT KHAI BÁO', parsedBulkRows.length + ' dòng');
+  } else if (importContext === 'priceconfig') {
+    let c = DB.get('priceConfig') || [];
+    parsedBulkRows.forEach(r => {
+      // Xóa cấu hình cũ cùng SP, ST, Ngày
+      c = c.filter(x => !(x.sanphamCode===r.sanphamCode && x.sieuthiName===r.sieuthiName && x.date===r.date));
+      c.unshift(r);
+    });
+    DB.set('priceConfig', c);
+    logAction('IMPORT GIÁ/THƯỞNG', parsedBulkRows.length + ' dòng');
+    if (!document.getElementById('priceConfigModal').classList.contains('hidden')) renderPriceConfigList();
+  }
+  
+  closeModal('importModal'); toast('success', `Import ${parsedBulkRows.length} thành công!`); loadTable();
 }
 
 // ============================================================
-// MASTER DATA (Admin Manual)
+// MASTER DATA RENDER & SEARCH
 // ============================================================
 function openMasterDataModal() {
   updateStatChips();
   switchMasterTab('importData');
   showModal('masterDataModal');
 }
+
 function switchMasterTab(t) {
   const tabs = ['importData','users','sieuthi','sanpham','nhanvien'];
   tabs.forEach(x => {
@@ -1026,7 +1063,7 @@ function openHistoryModal() {
 function clearHistory() { if (!confirm('Xóa sạch lịch sử?')) return; DB.set('historyLog', []); openHistoryModal(); }
 
 // ============================================================
-// PRICE CONFIG
+// CẤU HÌNH GIÁ VÀ THƯỞNG THEO NGÀY
 // ============================================================
 function openPriceConfigModal() { renderPriceConfigList(); showModal('priceConfigModal'); }
 function renderPriceConfigList() {
@@ -1037,9 +1074,10 @@ function renderPriceConfigList() {
         <b style="color:var(--green);">Cấu hình #${i+1}</b>
         <button class="btn btn-sm btn-danger" onclick="deletePriceRow(${i})">Xóa</button>
       </div>
-      <div class="form-row-3">
+      <div class="form-row-4">
         <div><label style="font-size:11px;">Siêu thị</label><input class="form-control" value="${x.sieuthiName||''}" onchange="uPC(${i},'sieuthiName',this.value)" placeholder="Tên ST..."></div>
         <div><label style="font-size:11px;">Mã SP</label><input class="form-control" value="${x.sanphamCode||''}" onchange="uPC(${i},'sanphamCode',this.value)" placeholder="Mã SP..."></div>
+        <div><label style="font-size:11px;">Ngày áp dụng</label><input type="date" class="form-control" value="${x.date||''}" onchange="uPC(${i},'date',this.value)"></div>
         <div><label style="font-size:11px;">Loại thưởng</label>
           <select class="form-control" onchange="uPC(${i},'rewardType',this.value)">
             ${['Tiền cố định','% Lãi gộp','Sản lượng'].map(t=>`<option ${x.rewardType===t?'selected':''}>${t}</option>`).join('')}
@@ -1053,20 +1091,6 @@ function renderPriceConfigList() {
     </div>`) .join('') : '<p style="padding:12px;color:#888;">Chưa có cấu hình. Nhấn ➕ để thêm.</p>';
 }
 function uPC(i,k,v) { let c=DB.get('priceConfig')||[]; c[i][k]=v; DB.set('priceConfig',c); }
-function addPriceRow() { let c=DB.get('priceConfig')||[]; c.unshift({sieuthiName:'',sanphamCode:'',rewardType:'Tiền cố định',price:'',reward:''}); DB.set('priceConfig',c); renderPriceConfigList(); }
+function addPriceRow() { let c=DB.get('priceConfig')||[]; c.unshift({sieuthiName:'',sanphamCode:'', date:'', rewardType:'Tiền cố định',price:'',reward:''}); DB.set('priceConfig',c); renderPriceConfigList(); }
 function deletePriceRow(i) { let c=DB.get('priceConfig')||[]; c.splice(i,1); DB.set('priceConfig',c); renderPriceConfigList(); }
 function savePriceConfig() { logAction('LƯU CẤU HÌNH GIÁ',''); closeModal('priceConfigModal'); toast('success','Đã lưu!'); loadTable(); }
-
-// ============================================================
-// UTILS
-// ============================================================
-function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-function toast(type, msg) {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
-}
