@@ -1,5 +1,5 @@
 // ============================================================
-// HELPER FUNCTIONS - THÊM VÀO ĐẦU FILE app.js
+// HELPER FUNCTIONS
 // ============================================================
 function cap(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -26,9 +26,9 @@ function toast(type, msg) {
 }
 
 // ============================================================
-// DATABASE (Nâng cấp lên IndexedDB + Cơ chế RAM Cache)
+// DATABASE
 // ============================================================
-const RAM_DB = {}; 
+const RAM_DB = {};
 
 const DB = {
   get: k => {
@@ -55,13 +55,11 @@ idbRequest.onsuccess = function(e) {
   const store = tx.objectStore('store');
   const req = store.getAll();
   const keysReq = store.getAllKeys();
-
   req.onsuccess = function() {
     keysReq.onsuccess = function() {
       const values = req.result;
       const keys = keysReq.result;
       keys.forEach((key, i) => { RAM_DB[key] = values[i]; });
-
       for (let i = 0; i < localStorage.length; i++) {
         let key = localStorage.key(i);
         if (key.startsWith('bhx_v4_') && RAM_DB[key] === undefined) {
@@ -77,7 +75,10 @@ idbRequest.onsuccess = function(e) {
   };
 };
 
-idbRequest.onerror = () => { console.error("Lỗi: Trình duyệt của bạn không hỗ trợ IndexedDB."); initSystem(); };
+idbRequest.onerror = () => {
+  console.error("Lỗi: Trình duyệt không hỗ trợ IndexedDB.");
+  initSystem();
+};
 
 function saveToIndexedDB(key, value) {
   if (!idb) return;
@@ -92,12 +93,12 @@ let importContext = 'khaibao';
 let parsedBulkRows = [];
 let rejectTargetId = null;
 let currentEditId = null;
-
 let dropSel = { sieuthi: null, sanpham: null, nhanvien: [] };
 let hasManualEntry = false;
+let smartApprovalId = null;
 
 // ============================================================
-// FORMAT TIỀN TỆ
+// FORMAT TIỀN TỆ & NGÀY
 // ============================================================
 function fMoney(n) {
   if (!n) return '';
@@ -105,9 +106,17 @@ function fMoney(n) {
   if (isNaN(num)) return n;
   return num.toLocaleString('en-US');
 }
+
 function pMoney(str) {
   if (!str) return '';
   return str.toString().replace(/,/g, '');
+}
+
+function fDate(isoDate) {
+  if (!isoDate) return '';
+  const parts = isoDate.split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return isoDate;
 }
 
 // ============================================================
@@ -123,9 +132,7 @@ function initSeedData() {
   if (!DB.get('declarations')) DB.set('declarations', []);
   if (!DB.get('priceConfig')) DB.set('priceConfig', []);
   if (!DB.get('historyLog')) DB.set('historyLog', []);
-  if (!DB.get('nhUsers')) DB.set('nhUsers', [
-    { code: 'NH01', name: 'Hải Phú' }
-  ]);
+  if (!DB.get('nhUsers')) DB.set('nhUsers', [{ code: 'NH01', name: 'Hải Phú' }]);
   if (!DB.get('adminPass')) DB.set('adminPass', '24122004');
   if (!DB.get('sieuthi')) DB.set('sieuthi', []);
   if (!DB.get('sanpham')) DB.set('sanpham', []);
@@ -139,13 +146,13 @@ function updateStatChips() {
   const nhU = DB.get('nhUsers') || [];
   if(document.getElementById('statQLTP')) document.getElementById('statQLTP').textContent = `QLTP: ${ql.length}`;
   if(document.getElementById('statST')) document.getElementById('statST').textContent = `Siêu thị: ${st.length}`;
-  if(document.getElementById('statFMCG')) document.getElementById('statFMCG').textContent = `SP FMCG: ${(sp.filter(x=>x.type==='fmcg')).length}`;
-  if(document.getElementById('statFresh')) document.getElementById('statFresh').textContent = `SP Fresh: ${(sp.filter(x=>x.type==='fresh')).length}`;
+  if(document.getElementById('statFMCG')) document.getElementById('statFMCG').textContent = `SP FMCG: ${sp.filter(x=>x.type==='fmcg').length}`;
+  if(document.getElementById('statFresh')) document.getElementById('statFresh').textContent = `SP Fresh: ${sp.filter(x=>x.type==='fresh').length}`;
   if(document.getElementById('statNV')) document.getElementById('statNV').textContent = `NV: ${nv.length}`;
   if(document.getElementById('countSieuthi')) document.getElementById('countSieuthi').textContent = st.length;
   if(document.getElementById('countSanpham')) document.getElementById('countSanpham').textContent = sp.length;
   if(document.getElementById('countNhanvien')) document.getElementById('countNhanvien').textContent = nv.length;
-  if(document.getElementById('countUsers')) document.getElementById('countUsers').textContent = nhU.length + ql.length + 1; 
+  if(document.getElementById('countUsers')) document.getElementById('countUsers').textContent = nhU.length + ql.length + 1;
 }
 
 function populateReviewers() {
@@ -174,21 +181,19 @@ function validateTime(t1, t2) {
 // ============================================================
 function importMasterFile(type, input) {
   const file = input.files[0]; if (!file) return;
-  const statusEl = document.getElementById('status' + { 'phanbо':'PhanBo', fmcg:'FMCG', fresh:'Fresh', nhanvien:'NV' }[type]);
+  const keyMap = { 'phanbо': 'PhanBo', fmcg: 'FMCG', fresh: 'Fresh', nhanvien: 'NV' };
+  const statusEl = document.getElementById('status' + (keyMap[type] || ''));
   if (statusEl) statusEl.textContent = '⏳ Đang đọc...';
-
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-
       if (type === 'phanbо') parsePhanBo(rows);
       else if (type === 'fmcg') parseSanPham(rows, 'fmcg');
       else if (type === 'fresh') parseSanPham(rows, 'fresh');
       else if (type === 'nhanvien') parseNhanVien(rows);
-
       updateStatChips();
       if (statusEl) statusEl.textContent = '✅ Import thành công!';
       input.value = '';
@@ -203,44 +208,26 @@ function importMasterFile(type, input) {
 function parsePhanBo(rows) {
   let headerIdx = 0;
   for (let i = 0; i < Math.min(5, rows.length); i++) {
-    if (rows[i].some(c => String(c).toUpperCase().includes('MST') || String(c).includes('Tên ST'))) {
-      headerIdx = i; break;
-    }
+    if (rows[i].some(c => String(c).toUpperCase().includes('MST') || String(c).includes('Tên ST'))) { headerIdx = i; break; }
   }
   const headers = rows[headerIdx].map(h => String(h).trim());
-
   const idxMST = headers.findIndex(h => h.toUpperCase() === 'MST' || h.includes('MST'));
   const idxTenST = headers.findIndex(h => h.includes('Tên ST') || h.includes('TEN ST'));
   const idxQLTP = headers.findIndex(h => h.includes('tên rút gọn') || h.includes('rút gọn') || (h.includes('QLTP') && h.includes('4')));
-
   let sieuthi = [], qltpMap = {};
-
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     const mst = String(r[idxMST] || '').trim();
     const tenST = String(r[idxTenST] || '').trim();
-    const qltpRaw = String(r[idxQLTP] || '').trim(); 
+    const qltpRaw = String(r[idxQLTP] || '').trim();
     if (!mst || !tenST) continue;
-
     let qltpCode = '', qltpName = '';
     const dashIdx = qltpRaw.indexOf(' - ');
-    if (dashIdx > 0) {
-      qltpCode = qltpRaw.substring(0, dashIdx).trim();
-      qltpName = qltpRaw.substring(dashIdx + 3).trim();
-    } else {
-      qltpCode = qltpRaw;
-    }
-
-    sieuthi.push({
-      id: mst, code: mst, name: tenST,
-      qltpCode: qltpCode, qltpName: qltpName
-    });
-
-    if (qltpCode && !qltpMap[qltpCode]) {
-      qltpMap[qltpCode] = { code: qltpCode, name: qltpName };
-    }
+    if (dashIdx > 0) { qltpCode = qltpRaw.substring(0, dashIdx).trim(); qltpName = qltpRaw.substring(dashIdx + 3).trim(); }
+    else { qltpCode = qltpRaw; }
+    sieuthi.push({ id: mst, code: mst, name: tenST, qltpCode, qltpName });
+    if (qltpCode && !qltpMap[qltpCode]) qltpMap[qltpCode] = { code: qltpCode, name: qltpName };
   }
-
   DB.set('sieuthi', sieuthi);
   DB.set('qltpList', Object.values(qltpMap));
   toast('success', `✅ Import ${sieuthi.length} siêu thị, ${Object.keys(qltpMap).length} QLTP`);
@@ -250,17 +237,13 @@ function parsePhanBo(rows) {
 function parseSanPham(rows, type) {
   let headerIdx = 0;
   for (let i = 0; i < Math.min(5, rows.length); i++) {
-    if (rows[i].some(c => String(c).toLowerCase().includes('mã') || String(c).toLowerCase().includes('ma'))) {
-      headerIdx = i; break;
-    }
+    if (rows[i].some(c => String(c).toLowerCase().includes('mã') || String(c).toLowerCase().includes('ma'))) { headerIdx = i; break; }
   }
   const headers = rows[headerIdx].map(h => String(h).trim().toLowerCase());
   const idxMa = headers.findIndex(h => h.includes('mã') || h.includes('ma'));
   const idxTen = headers.findIndex(h => (h.includes('tên') || h.includes('ten')) && !h.includes('tắt'));
-
-  let existing = (DB.get('sanpham') || []).filter(s => s.type !== type); 
+  let existing = (DB.get('sanpham') || []).filter(s => s.type !== type);
   let newItems = [], seen = new Set(existing.map(s => s.code));
-
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     const ma = String(r[idxMa] || '').trim();
@@ -277,16 +260,13 @@ function parseSanPham(rows, type) {
 function parseNhanVien(rows) {
   let headerIdx = 3;
   for (let i = 0; i < Math.min(6, rows.length); i++) {
-    if (rows[i].some(c => String(c).toLowerCase().includes('mã nhân viên') || String(c).toLowerCase().includes('ma nhan vien'))) {
-      headerIdx = i; break;
-    }
+    if (rows[i].some(c => String(c).toLowerCase().includes('mã nhân viên') || String(c).toLowerCase().includes('ma nhan vien'))) { headerIdx = i; break; }
   }
   const headers = rows[headerIdx].map(h => String(h).trim().toLowerCase());
   const idxMa = headers.findIndex(h => h.includes('mã nhân viên') || h.includes('ma nhan vien'));
   const idxTen = headers.findIndex(h => h.includes('tên nhân viên') || h.includes('ten nhan vien'));
   const idxST = headers.findIndex(h => h.includes('mã siêu thị') || h.includes('ma sieu thi'));
-
-  let items = []; let seen = new Set();
+  let items = [], seen = new Set();
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i];
     const ma = String(r[idxMa] || '').trim();
@@ -309,7 +289,6 @@ function toggleLoginFields() {
   document.getElementById('grpQLTP').style.display = r === 'qltp' ? 'block' : 'none';
   document.getElementById('grpNH').style.display = r === 'nganhhang' ? 'block' : 'none';
   document.getElementById('grpAdmin').style.display = r === 'admin' ? 'block' : 'none';
-
   const hints = {
     qltp: '📌 Nhập mã QLTP của bạn (VD: 27506). Hệ thống sẽ tự xác nhận tên và chỉ hiển thị dữ liệu của bạn.',
     nganhhang: '📌 Nhập mã và tên để xác nhận danh tính. Bạn sẽ thấy toàn bộ dữ liệu được phân công duyệt.',
@@ -325,10 +304,10 @@ function suggestQLTP(val) {
   const qltps = DB.get('qltpList') || [];
   const q = val.trim().toLowerCase();
   if (!q) { suggest.classList.add('hidden'); document.getElementById('qltpConfirm').style.display='none'; return; }
-
   const filtered = qltps.filter(x => x.code.toLowerCase().includes(q) || x.name.toLowerCase().includes(q)).slice(0, 10);
   if (!filtered.length) { suggest.classList.add('hidden'); document.getElementById('qltpConfirm').style.display='none'; return; }
-
+  
+  // Sửa lỗi #6: onmousedown thay vì onclick
   suggest.innerHTML = filtered.map(x =>
     `<div class="login-suggest-item" onmousedown="selectQLTPLogin('${x.code}','${x.name.replace(/'/g,"\\'")}')">
       <span class="mst">${x.code}</span>
@@ -336,7 +315,7 @@ function suggestQLTP(val) {
     </div>`
   ).join('');
   suggest.classList.remove('hidden');
-
+  
   const exact = qltps.find(x => x.code === val.trim());
   if (exact) {
     document.getElementById('qltpConfirm').style.display='block';
@@ -355,22 +334,19 @@ function selectQLTPLogin(code, name) {
 function handleLogin() {
   const r = document.getElementById('loginRole').value;
   if (!r) return toast('error', 'Chọn phân hệ!');
-
   if (r === 'admin') {
     const p = document.getElementById('loginPassAdmin').value;
     if (p !== DB.get('adminPass')) return toast('error', 'Sai mật khẩu Admin!');
     currentUser = { code: 'admin', name: 'Admin BHX', role: 'admin' };
     currentRole = 'admin';
-
   } else if (r === 'qltp') {
     const code = document.getElementById('loginCodeQLTP').value.trim();
     if (!code) return toast('error', 'Nhập mã QLTP!');
     const qltps = DB.get('qltpList') || [];
     const found = qltps.find(x => x.code === code);
-    if (!found) return toast('error', `Mã QLTP [${code}] không tồn tại trong hệ thống. Liên hệ Admin nếu cần hỗ trợ.`);
+    if (!found) return toast('error', `Mã QLTP [${code}] không tồn tại. Liên hệ Admin nếu cần hỗ trợ.`);
     currentUser = { code: found.code, name: found.name, role: 'qltp' };
     currentRole = 'qltp';
-
   } else if (r === 'nganhhang') {
     const code = document.getElementById('loginCodeNH').value.trim().toUpperCase();
     const name = document.getElementById('loginNameNH').value.trim();
@@ -388,18 +364,15 @@ function handleLogin() {
     currentUser = { code: found.code, name: found.name, role: 'nganhhang' };
     currentRole = 'nganhhang';
   }
-
   finishLogin();
 }
 
 function finishLogin() {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appContainer').classList.remove('blurred');
-
   const roleLabel = { admin: 'ADMIN', nganhhang: 'NGÀNH HÀNG', qltp: 'QLTP' }[currentRole];
   document.getElementById('headerUserName').textContent = `${currentUser.name} (${currentUser.code} — ${roleLabel})`;
   document.getElementById('roleStatusText').textContent = `Phân hệ: ${roleLabel} | ${currentUser.name} (${currentUser.code})`;
-
   updateRoleUI();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('filterTuNgay').value = today;
@@ -447,7 +420,9 @@ function submitChangePass() {
 function loadTable() {
   let all = DB.get('declarations') || [];
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
-  if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code); // Phân quyền duyệt của NH
+  
+  // Sửa lỗi #7: Ngành hàng mặc định chỉ thấy đơn của mình
+  if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code); 
 
   const fST = document.getElementById('filterSieuthi').value.toLowerCase();
   const fFr = document.getElementById('filterTuNgay').value;
@@ -463,6 +438,19 @@ function loadTable() {
   });
 
   document.getElementById('totalCount').textContent = `Tổng: ${filteredDeclarations.length} bản ghi`;
+  
+  // Sửa lỗi #7: Cập nhật badge (chấm đỏ báo số đơn cần duyệt cho NH)
+  if (currentRole === 'nganhhang' || currentRole === 'admin') {
+    const allDecls = DB.get('declarations') || [];
+    const pendingCount = currentRole === 'nganhhang' 
+      ? allDecls.filter(d => d.reviewerCode === currentUser.code && d.status === 'pending').length
+      : allDecls.filter(d => d.status === 'pending').length;
+    
+    const roleLabel = { admin: 'ADMIN', nganhhang: 'NGÀNH HÀNG' }[currentRole];
+    let badgeHtml = pendingCount > 0 ? `<span style="background:var(--red);color:white;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:8px;animation: pulse 1s infinite;">Cần duyệt: ${pendingCount}</span>` : '';
+    document.getElementById('roleStatusText').innerHTML = `Phân hệ: ${roleLabel} | ${currentUser.name} (${currentUser.code}) ${badgeHtml}`;
+  }
+
   renderTable();
 }
 
@@ -482,18 +470,17 @@ function renderTable() {
     const nvTags = (d.nhanvienList||[]).map(n => n.isManual ? `<span class="manual-tag">⚠ ${n.name}</span>` : n.name).join(', ');
     const stat = { pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
     
-    // Xử lý hiển thị Giá / Thưởng công khai theo ngày
     let pc = priceCfgs.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
     let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁</button> `;
-    if ((currentRole==='qltp'||currentRole==='admin') && (d.status==='rejected'))
+    if ((currentRole==='qltp'||currentRole==='admin') && d.status==='rejected')
       acts += `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">✏</button> `;
     
-    // Quyền Admin Override phê duyệt
+    // Tích hợp Smart Approval
     if (d.status === 'pending') {
       if (currentRole === 'admin' || (currentRole === 'nganhhang' && d.reviewerCode === currentUser.code)) {
-        acts += `<button class="btn btn-sm btn-success" onclick="approveRecord('${d.id}')">✅</button> <button class="btn btn-sm btn-danger" onclick="openRejectModal('${d.id}')">❌</button> `;
+        acts += `<button class="btn btn-sm btn-success" onclick="openSmartApproval('${d.id}')">✅</button> <button class="btn btn-sm btn-danger" onclick="openRejectModal('${d.id}')">❌</button> `;
       }
     }
 
@@ -506,7 +493,7 @@ function renderTable() {
       <td style="font-weight:600;color:var(--green);font-size:12px;">${d.authorCode}<br><span style="font-weight:400;color:#555;">${d.authorName}</span></td>
       <td style="font-size:11px;color:var(--blue);">${d.reviewerName ? `<b>${d.reviewerName}</b><br><span style="color:#888;">${d.reviewerCode}</span>` : '--'}</td>
       <td style="font-size:12px;">${stTag}</td>
-      <td style="font-weight:bold;color:var(--blue);white-space:nowrap;">${(d.ngay||'').split('-').reverse().join('/')}</td>
+      <td style="font-weight:bold;color:var(--blue);white-space:nowrap;">${fDate(d.ngay)}</td>
       <td style="font-size:12px;white-space:nowrap;">${d.tuGio||'--'} - ${d.denGio||'--'}</td>
       <td style="font-weight:bold;color:var(--green);font-size:11px;">${d.sanphamCode||'--'}</td>
       <td style="font-size:12px;max-width:160px;">${spTag}</td>
@@ -571,12 +558,19 @@ function filterDrop(field, query) {
 
   const listEl = document.getElementById(`drop${cap(field)}-list`);
 
-  let html = items.map(it =>
-    `<div class="dropdown-item" onmousedown="selectDropItem('${field}', ${JSON.stringify(it).replace(/"/g,'&quot;')})">
+  let html = items.map(it => {
+    const safeItem = JSON.stringify(it).replace(/"/g,'&quot;');
+    // Sửa lỗi #3: Hiện Mã + Tên ST
+    if (field === 'sieuthi') {
+      return `<div class="dropdown-item" onmousedown="selectDropItem('${field}', ${safeItem})">
+        <span><b style="color:var(--green)">[${it.code}]</b> ${it.name}</span>
+      </div>`;
+    }
+    return `<div class="dropdown-item" onmousedown="selectDropItem('${field}', ${safeItem})">
       <span>${it.name}</span>
       <span style="font-size:11px;color:#888;">${it.sub||it.code}</span>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
 
   if (q) {
     html += `<div class="dropdown-item-manual" onmousedown="selectManualItem('${field}','${query.replace(/'/g,"\\'")}')">
@@ -597,7 +591,8 @@ function selectDropItem(field, item) {
     if (!dropSel.nhanvien.find(n => n.id === item.id)) dropSel.nhanvien.push({ ...item, isManual: false });
   } else {
     dropSel[field] = { ...item, isManual: false };
-    document.getElementById(`input${cap(field)}`).value = item.name;
+    // Sửa lỗi #3: Input fill Mã + Tên ST
+    document.getElementById(`input${cap(field)}`).value = field === 'sieuthi' ? `[${item.code}] ${item.name}` : item.name;
   }
   renderTags(field);
   document.getElementById(`drop${cap(field)}-list`).classList.add('hidden');
@@ -637,7 +632,7 @@ function renderTags(field) {
   } else {
     const sel = dropSel[field];
     cont.innerHTML = sel ? `<span class="tag-item ${sel.isManual ? 'manual' : ''}">
-      ${sel.isManual ? '⚠' : ''} ${sel.name}
+      ${sel.isManual ? '⚠' : ''} ${field === 'sieuthi' && sel.code ? `[${sel.code}] ${sel.name}` : sel.name}
       <span class="remove" onmousedown="removeTag('${field}')">×</span>
     </span>` : '';
   }
@@ -659,7 +654,7 @@ document.addEventListener('click', e => {
 });
 
 // ============================================================
-// TẠO / SỬA (Đã ép trạng thái Pending)
+// TẠO / SỬA 
 // ============================================================
 function openCreateModal() {
   currentEditId = null;
@@ -684,7 +679,7 @@ function openEditModal(id) {
   dropSel.sieuthi = { id: d.sieuthiId, code: d.sieuthiCode||'', name: d.sieuthiName, isManual: d.isManualSieuthi };
   dropSel.sanpham = { id: d.sanphamId, code: d.sanphamCode, name: d.sanphamName, isManual: d.isManualSanpham };
   dropSel.nhanvien = [...(d.nhanvienList||[])];
-  document.getElementById('inputSieuthi').value = d.sieuthiName;
+  document.getElementById('inputSieuthi').value = d.isManualSieuthi ? d.sieuthiName : `[${d.sieuthiCode}] ${d.sieuthiName}`;
   document.getElementById('inputSanpham').value = d.sanphamName;
   document.getElementById('inputNhanvien').value = '';
   document.getElementById('formNgay').value = d.ngay;
@@ -719,15 +714,116 @@ function submitForm() {
   if (currentEditId) {
     let idx = decls.findIndex(x => x.id === currentEditId);
     decls[idx] = { ...decls[idx], sieuthiId: st.id, sieuthiCode: st.code, sieuthiName: st.name, isManualSieuthi: st.isManual, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual, nhanvienList: nv, ngay, tuGio: tG, denGio: dG, reviewerCode: rCode, reviewerName: rName, status: 'pending', updatedAt: new Date().toISOString() };
-    toast('success', 'Cập nhật và gửi duyệt thành công!'); logAction('SỬA ĐƠN', currentEditId);
+    toast('success', 'Cập nhật và Gửi Duyệt thành công!'); logAction('SỬA ĐƠN', currentEditId);
   } else {
     decls.unshift({ id: 'BK' + Date.now().toString().slice(-8), authorCode: currentUser.code, authorName: currentUser.name, sieuthiId: st.id, sieuthiCode: st.code||'', sieuthiName: st.name, isManualSieuthi: st.isManual||false, ngay, tuGio: tG, denGio: dG, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual||false, nhanvienList: nv, reviewerCode: rCode, reviewerName: rName, status: 'pending', createdAt: new Date().toISOString(), rejectReason: '' });
-    toast('success', 'Tạo mới và gửi duyệt thành công!'); logAction('TẠO ĐƠN', '');
+    toast('success', 'Tạo mới và Gửi Duyệt thành công!'); logAction('TẠO ĐƠN', '');
   }
   DB.set('declarations', decls); closeModal('createModal'); loadTable();
 }
 
-// WORKFLOW
+// ============================================================
+// FIX #8: SMART APPROVAL & WORKFLOW
+// ============================================================
+function openSmartApproval(id) {
+  const decls = DB.get('declarations') || [];
+  const d = decls.find(x => x.id === id);
+  if (!d) return;
+  
+  smartApprovalId = id; 
+  const priceCfgs = DB.get('priceConfig') || [];
+  const existingPrice = priceCfgs.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+  
+  let modalHtml = document.getElementById('smartApprovalModal');
+  if (!modalHtml) {
+    modalHtml = document.createElement('div');
+    modalHtml.id = 'smartApprovalModal';
+    modalHtml.className = 'modal-overlay hidden';
+    modalHtml.innerHTML = `
+      <div class="modal" style="width: 500px;">
+        <div class="modal-header">
+          <h3>✅ Xác nhận Duyệt & Chốt Giá</h3>
+          <button class="modal-close" onclick="closeModal('smartApprovalModal')">×</button>
+        </div>
+        <div class="modal-body" id="saModalBody"></div>
+        <div class="modal-footer">
+          <button class="btn btn-success" onclick="confirmSmartApproval()">Xác nhận Duyệt</button>
+          <button class="btn btn-secondary" onclick="closeModal('smartApprovalModal')">Hủy</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modalHtml);
+  }
+  
+  let content = `
+    <div style="background:#f0fff4;border:1px solid #c3e6cb;border-radius:6px;padding:12px;margin-bottom:12px;font-size:13px;">
+      <div><b>Mã đơn:</b> ${d.id} | <b>QLTP:</b> ${d.authorName}</div>
+      <div><b>Siêu thị:</b> ${d.sieuthiName} | <b>Ngày:</b> ${fDate(d.ngay)}</div>
+      <div><b>Sản phẩm:</b> [${d.sanphamCode}] ${d.sanphamName}</div>
+    </div>`;
+    
+  if (existingPrice) {
+    content += `
+      <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:8px;margin-bottom:10px;font-size:12px;">
+        ✅ Đã tìm thấy cấu hình giá. Tự động điền sẵn — bạn có thể chỉnh sửa.
+      </div>`;
+  } else {
+    content += `
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:8px;margin-bottom:10px;font-size:12px;">
+        ⚠️ Chưa có cấu hình giá cho SP này vào ngày này. Nhập giá/thưởng để duyệt.
+      </div>`;
+  }
+
+  content += `
+    <div class="form-group">
+      <label>Loại thưởng</label>
+      <select id="saRewardType" class="form-control">
+        <option ${existingPrice?.rewardType==='Tiền cố định'?'selected':''}>Tiền cố định</option>
+        <option ${existingPrice?.rewardType==='% Lãi gộp'?'selected':''}>% Lãi gộp</option>
+        <option ${existingPrice?.rewardType==='Sản lượng'?'selected':''}>Sản lượng</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Giá bán (VNĐ)</label>
+        <input type="text" id="saPrice" class="form-control" value="${existingPrice ? fMoney(existingPrice.price) : ''}" oninput="this.value=fMoney(this.value)">
+      </div>
+      <div class="form-group">
+        <label>Mức thưởng</label>
+        <input type="text" id="saReward" class="form-control" value="${existingPrice ? fMoney(existingPrice.reward) : ''}" oninput="this.value=fMoney(this.value)">
+      </div>
+    </div>`;
+
+  document.getElementById('saModalBody').innerHTML = content;
+  showModal('smartApprovalModal');
+}
+
+function confirmSmartApproval() {
+  const price = pMoney(document.getElementById('saPrice').value);
+  const reward = pMoney(document.getElementById('saReward').value);
+  const rewardType = document.getElementById('saRewardType').value;
+  
+  if (!price) return toast('error', 'Vui lòng nhập Giá bán!');
+  if (!reward) return toast('error', 'Vui lòng nhập Mức thưởng!');
+  
+  const decls = DB.get('declarations') || [];
+  const d = decls.find(x => x.id === smartApprovalId);
+  if (!d) return;
+
+  let priceCfgs = DB.get('priceConfig') || [];
+  priceCfgs = priceCfgs.filter(p => !(p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay));
+  priceCfgs.unshift({ sanphamCode: d.sanphamCode, sieuthiName: d.sieuthiName, date: d.ngay, rewardType, price, reward });
+  DB.set('priceConfig', priceCfgs);
+
+  d.status = 'approved';
+  DB.set('declarations', decls);
+  
+  logAction('DUYỆT VÀ CHỐT GIÁ', `${smartApprovalId} | Giá: ${fMoney(price)}`);
+  closeModal('smartApprovalModal');
+  toast('success', '✅ Đã duyệt và lưu giá thành công!');
+  loadTable();
+}
+
 function approveRecord(id) { let d = DB.get('declarations') || []; d.find(x => x.id === id).status = 'approved'; DB.set('declarations', d); logAction('DUYỆT', id); loadTable(); toast('success', 'Đã duyệt!'); }
 function openRejectModal(id) { rejectTargetId = id; document.getElementById('rejectReasonInput').value = ''; showModal('rejectModal'); }
 function confirmReject() {
@@ -737,12 +833,23 @@ function confirmReject() {
   else { let ix = decls.findIndex(x => x.id === rejectTargetId); if (ix >= 0) { decls[ix].status = 'rejected'; decls[ix].rejectReason = rs; } }
   DB.set('declarations', decls); logAction('TỪ CHỐI', rs); closeModal('rejectModal'); loadTable(); toast('warning', 'Đã từ chối');
 }
+
+// Sửa Lỗi #5: bulkApprove không chọn vẫn OK
 function bulkApprove() { 
+  if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!');
   let d = DB.get('declarations') || []; 
-  d.forEach(x => { if (selectedIds.has(x.id) && x.status === 'pending' && (currentRole==='admin'||x.reviewerCode===currentUser.code)) x.status = 'approved'; }); 
-  DB.set('declarations', d); selectedIds.clear(); logAction('DUYỆT NHIỀU', ''); loadTable(); toast('success', 'Duyệt hàng loạt OK!'); 
+  let count = 0;
+  d.forEach(x => { 
+    if (selectedIds.has(x.id) && x.status === 'pending' && (currentRole==='admin'||x.reviewerCode===currentUser.code)) {
+      x.status = 'approved'; count++;
+    } 
+  }); 
+  DB.set('declarations', d); selectedIds.clear(); logAction('DUYỆT NHIỀU', ''); loadTable(); toast('success', `Đã duyệt ${count} đơn!`); 
 }
-function bulkReject() { if (!selectedIds.size) return; rejectTargetId = '__bulk__'; showModal('rejectModal'); }
+function bulkReject() { 
+  if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!'); 
+  rejectTargetId = '__bulk__'; showModal('rejectModal'); 
+}
 function deleteRecord(id) { if (!confirm('Xóa bản ghi này?')) return; let d = DB.get('declarations') || []; DB.set('declarations', d.filter(x => x.id !== id)); logAction('XÓA', id); loadTable(); toast('success', 'Đã xóa'); }
 
 function openDetail(id) {
@@ -758,7 +865,7 @@ function openDetail(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
       <div><b>Mã đơn:</b> ${d.id}</div><div><b>Trạng thái:</b> ${{pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'}[d.status]}</div>
       <div><b>Người tạo:</b> ${d.authorName} (${d.authorCode})</div><div><b>Ngày tạo:</b> ${(d.createdAt||'').split('T')[0]}</div>
-      <div><b>Người duyệt:</b> ${d.reviewerName ? `${d.reviewerName} (${d.reviewerCode})` : '--'}</div><div><b>Ngày BK:</b> ${(d.ngay||'').split('-').reverse().join('/')}</div>
+      <div><b>Người duyệt:</b> ${d.reviewerName ? `${d.reviewerName} (${d.reviewerCode})` : '--'}</div><div><b>Ngày BK:</b> ${fDate(d.ngay)}</div>
       <div><b>Siêu thị:</b> ${d.sieuthiName}</div><div><b>Giờ:</b> ${d.tuGio||'--'} → ${d.denGio||'--'}</div>
       <div style="grid-column: span 2;"><b>Sản phẩm:</b> [${d.sanphamCode}] ${d.sanphamName}</div>
     </div>
@@ -832,8 +939,27 @@ function downloadTemplateExcel(type) {
   XLSX.writeFile(wb, 'Template_KhaiBao.xlsx');
 }
 
+// Sửa Lỗi #2: Hàm tải form cấu hình giá
+function downloadPriceTemplateExcel() {
+  const d = [
+    ['Mã SP','Tên Siêu Thị','Ngày (YYYY-MM-DD)','Loại thưởng','Giá bán','Mức thưởng'],
+    ['1053090000397','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','2026-04-25','Tiền cố định','25000','5000'],
+    ['1053090000397','BHX_HCM_002 - Lý Thường Kiệt','2026-04-25','% Lãi gộp','25000','15'],
+    ['2000000001234','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','2026-04-26','Sản lượng','30000','2000']
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template_CauHinhGia");
+  XLSX.writeFile(wb, 'Template_CauHinhGia.xlsx');
+  toast('success', '✅ Đã tải file mẫu cấu hình giá!');
+}
+
+// Sửa Lỗi #1: Tránh đen nền Modal đè Modal
 function openImportModal(ctx) {
   importContext = ctx;
+  if (ctx === 'priceconfig') {
+    closeModal('priceConfigModal'); // Đóng cái cũ trước
+  }
+  
   if (ctx === 'khaibao') {
     document.getElementById('importModalTitle').textContent = '📤 Import Khai Báo (.xlsx)';
     document.getElementById('importGuideText').innerHTML = 'Cột: <b>Siêu thị | Ngày (YYYY-MM-DD) | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV (cách nhau ;)</b>';
@@ -877,7 +1003,6 @@ function parseImportKB(rows) {
     if (!stObj) { isWarn = true; }
     if (currentRole === 'qltp' && stObj && stObj.qltpCode !== currentUser.code) errs.push('ST ngoài quyền');
     
-    // Format ngày chuẩn YYYY-MM-DD
     let pDt = dt; 
     if (dt.includes('/')) { try { const [d,m,y] = dt.split('/'); pDt = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; } catch {} }
     if (!pDt || pDt.includes('undefined')) errs.push('Sai ngày');
@@ -889,7 +1014,6 @@ function parseImportKB(rows) {
 
     let spObj = mstSP.find(s => s.code === spC || s.name.toLowerCase() === spN.toLowerCase());
     
-    // Tối ưu bóc tách Mã Nhân Viên (Regex ^\d+)
     let nvs = nvRaw.split(';').filter(x=>x.trim()).map(n => {
       n = n.trim();
       let matchCode = n.match(/^(\d+)/);
@@ -947,21 +1071,60 @@ function submitBulkImport() {
     });
     DB.set('declarations', d);
     logAction('IMPORT KHAI BÁO', parsedBulkRows.length + ' dòng');
+    closeModal('importModal'); toast('success', `Import thành công!`); loadTable();
   } else if (importContext === 'priceconfig') {
     let c = DB.get('priceConfig') || [];
     parsedBulkRows.forEach(r => {
-      // Xóa cấu hình cũ cùng SP, ST, Ngày
       c = c.filter(x => !(x.sanphamCode===r.sanphamCode && x.sieuthiName===r.sieuthiName && x.date===r.date));
       c.unshift(r);
     });
     DB.set('priceConfig', c);
     logAction('IMPORT GIÁ/THƯỞNG', parsedBulkRows.length + ' dòng');
-    if (document.getElementById('priceConfigModal') && !document.getElementById('priceConfigModal').classList.contains('hidden')) {
-      renderPriceConfigList();
+    closeModal('importModal');
+    
+    // Tự động duyệt thông minh
+    const allDecls = DB.get('declarations') || [];
+    const matchedPending = allDecls.filter(d => {
+      if (d.status !== 'pending') return false;
+      if (currentRole === 'nganhhang' && d.reviewerCode !== currentUser.code) return false;
+      return parsedBulkRows.some(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+    });
+
+    if (matchedPending.length > 0) {
+      setTimeout(() => {
+        document.getElementById('autoApproveCount').textContent = matchedPending.length;
+        showModal('autoApproveModal');
+      }, 300);
+    } else {
+      toast('success', `Import ${parsedBulkRows.length} cấu hình giá thành công!`);
+      if (document.getElementById('priceConfigModal') && !document.getElementById('priceConfigModal').classList.contains('hidden')) {
+        renderPriceConfigList();
+      }
+      loadTable();
     }
   }
-  
-  closeModal('importModal'); toast('success', `Import ${parsedBulkRows.length} thành công!`); loadTable();
+}
+
+function confirmAutoApprove() {
+  const allDecls = DB.get('declarations') || [];
+  let approved = 0;
+  allDecls.forEach(d => {
+    if (d.status !== 'pending') return;
+    if (currentRole === 'nganhhang' && d.reviewerCode !== currentUser.code) return;
+    const matched = parsedBulkRows.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+    if (matched) { d.status = 'approved'; approved++; }
+  });
+  DB.set('declarations', allDecls);
+  closeModal('autoApproveModal');
+  logAction('TỰ ĐỘNG DUYỆT (IMPORT GIÁ)', approved + ' đơn');
+  toast('success', `✅ Đã tự động duyệt ${approved} đơn khớp!`);
+  loadTable();
+}
+
+function skipAutoApprove() {
+  closeModal('autoApproveModal');
+  toast('success', `Import thành công!`);
+  loadTable();
 }
 
 // ============================================================
@@ -1101,7 +1264,7 @@ function openHistoryModal() {
 function clearHistory() { if (!confirm('Xóa sạch lịch sử?')) return; DB.set('historyLog', []); openHistoryModal(); }
 
 // ============================================================
-// CẤU HÌNH GIÁ & THƯỞNG THEO NGÀY
+// CẤU HÌNH GIÁ VÀ THƯỞNG THEO NGÀY
 // ============================================================
 function openPriceConfigModal() { renderPriceConfigList(); showModal('priceConfigModal'); }
 function renderPriceConfigList() {
