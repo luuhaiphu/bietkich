@@ -1272,3 +1272,137 @@ function clearHistory() {
   DB.set('historyLog', []); 
   openHistoryModal(); 
 }
+// ============================================================
+// MASTER DATA CONTROL (ĐIỀU KHIỂN BẢNG MASTER DATA)
+// ============================================================
+
+// 1. Hàm mở Modal Master Data
+function openMasterDataModal() {
+  if (typeof updateStatChips === 'function') updateStatChips();
+  switchMasterTab('importData'); // Mặc định mở tab Import trước
+  showModal('masterDataModal');
+}
+
+// 2. Hàm chuyển đổi qua lại giữa các Tab
+function switchMasterTab(t) {
+  const tabs = ['importData','users','sieuthi','sanpham','nhanvien'];
+  
+  // Ẩn tất cả nội dung tab và bỏ màu nút active
+  tabs.forEach(x => {
+    const contentEl = document.getElementById(`masterTab${cap(x)}`);
+    if (contentEl) contentEl.classList.remove('active');
+  });
+  
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => btn.classList.remove('active'));
+
+  // Hiển thị tab được chọn
+  const targetContent = document.getElementById(`masterTab${cap(t)}`);
+  if (targetContent) targetContent.classList.add('active');
+  
+  // Tìm và active nút bấm tương ứng (dựa vào text hoặc thứ tự)
+  tabBtns.forEach(btn => {
+    if (btn.getAttribute('onclick')?.includes(`'${t}'`)) {
+      btn.classList.add('active');
+    }
+  });
+
+  // Nếu không phải tab Import thì load danh sách dữ liệu ra
+  if (t !== 'importData') {
+    let searchEl = document.getElementById(`search${cap(t)}`);
+    if(searchEl) searchEl.value = '';
+    renderMasterList(t);
+  }
+}
+
+// 3. Hàm vẽ danh sách dữ liệu (User, ST, SP, NV) ra bảng
+function renderMasterList(type) {
+  const el = document.getElementById(`master${cap(type)}List`);
+  if (!el) return;
+
+  let q = '';
+  let searchEl = document.getElementById(`search${cap(type)}`);
+  if(searchEl) q = searchEl.value.toLowerCase().trim();
+
+  if (type === 'users') {
+    const nhUsers = DB.get('nhUsers') || [];
+    const qltpList = DB.get('qltpList') || [];
+    
+    let filteredNH = nhUsers.filter(u => !q || String(u.code).toLowerCase().includes(q) || String(u.name).toLowerCase().includes(q));
+    let filteredQL = qltpList.filter(u => !q || String(u.code).toLowerCase().includes(q) || String(u.name).toLowerCase().includes(q));
+
+    let rows = ``;
+    if(!q) rows += `<tr style="background:#fff3cd;"><td style="padding:6px;font-weight:bold;">admin</td><td style="padding:6px;">Admin BHX</td><td style="padding:6px;font-weight:bold;color:#666;">Admin</td><td></td></tr>`;
+
+    filteredNH.forEach(u => {
+      rows += `<tr><td style="padding:6px;">${u.code}</td><td style="padding:6px;">${u.name}</td><td style="padding:6px;color:var(--blue);font-weight:600;">Ngành Hàng</td><td><button class="btn btn-sm btn-danger" onclick="delUser('nganhhang','${u.code}')">Xóa</button></td></tr>`;
+    });
+    filteredQL.forEach(u => {
+      rows += `<tr><td style="padding:6px;">${u.code}</td><td style="padding:6px;">${u.name}</td><td style="padding:6px;color:var(--green);font-weight:600;">QLTP</td><td><button class="btn btn-sm btn-danger" onclick="delUser('qltp','${u.code}')">Xóa</button></td></tr>`;
+    });
+
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã</th><th style="padding:6px;">Tên</th><th style="padding:6px;">Phân hệ</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="4" align="center">Không tìm thấy</td></tr>'}</tbody></table>`;
+  
+  } else {
+    const items = DB.get(type) || [];
+    let filtered = items.filter(s => !q || (s.code && String(s.code).toLowerCase().includes(q)) || (s.name && String(s.name).toLowerCase().includes(q)));
+    let limit = filtered.slice(0, 100); // Giới hạn 100 dòng cho mượt
+
+    let tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã/MST</th><th style="padding:6px;">Tên</th><th style="padding:6px;">Thông tin thêm</th><th></th></tr></thead><tbody>`;
+    
+    tableHtml += limit.map(s => `
+      <tr>
+        <td style="padding:6px;">${s.code}</td>
+        <td style="padding:6px;">${s.name}</td>
+        <td style="padding:6px;color:#888;">${type === 'sieuthi' ? (s.qltpCode || 'Chưa gán') : (s.sieuthiCode || s.type || '')}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="delMaster('${type}','${s.id}')">Xóa</button></td>
+      </tr>`).join('');
+    
+    tableHtml += `</tbody></table>`;
+    if(filtered.length > 100) tableHtml += `<p style="font-size:11px; color:orange; padding:5px;">... và ${filtered.length - 100} kết quả khác. Vui lòng gõ ô tìm kiếm để thấy cụ thể.</p>`;
+    
+    el.innerHTML = tableHtml;
+  }
+}
+
+// 4. Các hàm Thêm/Xóa thủ công trong Master Data
+function addMasterUser() {
+  const role = document.getElementById('newUserRole').value;
+  const c = document.getElementById('newUserCode').value.trim();
+  const n = document.getElementById('newUserName').value.trim();
+  if (!c || !n) return toast('error', 'Nhập đủ Mã và Tên!');
+  let key = (role === 'nganhhang') ? 'nhUsers' : 'qltpList';
+  let list = DB.get(key) || [];
+  if (list.find(x => String(x.code).toUpperCase() === c.toUpperCase())) return toast('error', 'Mã đã tồn tại!');
+  list.push({ code: c, name: n });
+  DB.set(key, list);
+  toast('success', 'Thành công!'); populateReviewers(); renderMasterList('users');
+}
+
+function delUser(role, code) {
+  if (!confirm('Xóa tài khoản này?')) return;
+  let key = (role === 'nganhhang') ? 'nhUsers' : 'qltpList';
+  let list = (DB.get(key) || []).filter(u => u.code !== code);
+  DB.set(key, list);
+  populateReviewers(); renderMasterList('users');
+}
+
+function addMasterItem(type) {
+  const c = document.getElementById(`new${cap(type)}Code`).value.trim();
+  const n = document.getElementById(`new${cap(type)}Name`).value.trim();
+  if (!c || !n) return toast('error', 'Nhập đủ Mã và Tên!');
+  let items = DB.get(type) || [];
+  if (items.find(x => String(x.code) === c)) return toast('error', 'Trùng mã!');
+  const obj = { id: c, code: c, name: n };
+  if (type === 'sieuthi') obj.qltpCode = document.getElementById('newSieuthiQLTP').value.trim();
+  if (type === 'nhanvien') obj.sieuthiCode = document.getElementById('newNhanvienST').value.trim();
+  items.push(obj); DB.set(type, items);
+  toast('success', 'Đã thêm'); renderMasterList(type);
+}
+
+function delMaster(type, id) {
+  if (!confirm('Xóa?')) return;
+  let list = (DB.get(type) || []).filter(x => x.id !== id);
+  DB.set(type, list);
+  renderMasterList(type);
+}
