@@ -384,6 +384,11 @@ function handleLogin() {
     currentUser = { code: found.code, name: found.name, role: 'nganhhang' };
     currentRole = 'nganhhang';
   }
+  
+  // HỒI NÃY ANH BỊ MẤT ĐOẠN NÀY ĐÂY NÈ:
+  finishLogin();
+}
+
 function finishLogin() {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('appContainer').classList.remove('blurred');
@@ -397,14 +402,12 @@ function finishLogin() {
   
   buildFilterDatalist(); // Của phần tìm kiếm ngoài màn hình chính
 
-  // ---> ĐOẠN CODE GỢI Ý ĐƯỢC ĐẶT Ở ĐÂY <---
   // Đổ dữ liệu vào Datalist để Gợi ý tự động trong Cấu hình giá
   const dlST = document.getElementById('listAutoST');
   if (dlST) dlST.innerHTML = (DB.get('sieuthi')||[]).map(s => `<option value="[${s.code}] ${s.name}">`).join('');
   
   const dlSP = document.getElementById('listAutoSP');
   if (dlSP) dlSP.innerHTML = (DB.get('sanpham')||[]).map(s => `<option value="[${s.code}] ${s.name}">`).join('');
-  // ----------------------------------------
 
   loadTable();
 }
