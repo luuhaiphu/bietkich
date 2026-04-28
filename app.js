@@ -430,7 +430,8 @@ function loadTable() {
   const fSt = document.getElementById('filterStatus').value;
 
   filteredDeclarations = all.filter(d => {
-    if (fST && !(d.sieuthiName||'').toLowerCase().includes(fST)) return false;
+    const chuoiTimKiem = ((d.sieuthiCode || '') + ' - ' + (d.sieuthiName || '')).toLowerCase();
+    if (fST && !chuoiTimKiem.includes(fST)) return false;
     if (fFr && d.ngay < fFr) return false;
     if (fTo && d.ngay > fTo) return false;
     if (fSt && d.status !== fSt) return false;
