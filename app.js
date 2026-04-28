@@ -2,7 +2,7 @@
 // HELPER FUNCTIONS
 // ============================================================
 function cap(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
 }
 
 function showModal(id) {
@@ -112,7 +112,6 @@ function pMoney(str) {
   return str.toString().replace(/,/g, '');
 }
 
-// ÉP CHUẨN DD/MM/YYYY TOÀN HỆ THỐNG
 function fDate(isoDate) {
   if (!isoDate) return '';
   if (isoDate.includes('T')) isoDate = isoDate.split('T')[0];
@@ -300,9 +299,17 @@ function dlMasterTpl(type) {
     d = [['', '', ''], ['', '', ''], ['', '', ''], ['Mã Nhân Viên', 'Tên Nhân Viên', 'Mã Siêu Thị'], ['268789', 'Nguyễn Hải Phú', '12345']];
     name = "Template_NhanVien.xlsx";
   }
-  const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Template");
-  XLSX.writeFile(wb, name);
+  
+  try {
+    const ws = XLSX.utils.aoa_to_sheet(d); 
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, name, { bookType: 'xlsx', type: 'binary' });
+    toast('success', `✅ Đã tải ${name}!`);
+  } catch (error) {
+    console.error(error);
+    toast('error', 'Lỗi tải file. Vui lòng kiểm tra console (F12)');
+  }
 }
 
 // ============================================================
@@ -332,7 +339,6 @@ function suggestQLTP(val) {
   const filtered = qltps.filter(x => String(x.code).toLowerCase().includes(q) || String(x.name).toLowerCase().includes(q)).slice(0, 10);
   if (!filtered.length) { suggest.classList.add('hidden'); document.getElementById('qltpConfirm').style.display='none'; return; }
   
-  // FIX CLICK: onclick trigger
   suggest.innerHTML = filtered.map(x =>
     `<div class="login-suggest-item" onclick="selectQLTPLogin('${x.code}','${x.name.replace(/'/g,"\\'")}')">
       <span class="mst">${x.code}</span>
@@ -347,7 +353,6 @@ function selectQLTPLogin(code, name) {
   document.getElementById('qltpSuggest').classList.add('hidden');
   document.getElementById('qltpConfirm').style.display = 'block';
   document.getElementById('qltpConfirmText').textContent = `${code} — ${name}`;
-  // FIX: Tự động vô hệ thống sau khi chọn Suggest
   handleLogin();
 }
 
@@ -385,7 +390,6 @@ function handleLogin() {
     currentRole = 'nganhhang';
   }
   
-  // HỒI NÃY ANH BỊ MẤT ĐOẠN NÀY ĐÂY NÈ:
   finishLogin();
 }
 
@@ -400,9 +404,7 @@ function finishLogin() {
   document.getElementById('filterDenNgay').value = today;
   logAction('ĐĂNG NHẬP', `Phân hệ ${roleLabel}`);
   
-  buildFilterDatalist(); // Của phần tìm kiếm ngoài màn hình chính
-
-  // Đổ dữ liệu vào Datalist để Gợi ý tự động trong Cấu hình giá
+  // Nạp dữ liệu vào Datalist để Gợi ý tự động trong Cấu hình giá
   const dlST = document.getElementById('listAutoST');
   if (dlST) dlST.innerHTML = (DB.get('sieuthi')||[]).map(s => `<option value="[${s.code}] ${s.name}">`).join('');
   
@@ -411,6 +413,7 @@ function finishLogin() {
 
   loadTable();
 }
+
 function logout() {
   currentUser = null; currentRole = null;
   document.getElementById('appContainer').classList.add('blurred');
@@ -450,7 +453,6 @@ function submitChangePass() {
 function loadTable() {
   let all = DB.get('declarations') || [];
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
-  
   if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code); 
 
   const fST = document.getElementById('filterSieuthi').value.toLowerCase();
@@ -459,7 +461,6 @@ function loadTable() {
   const fSt = document.getElementById('filterStatus').value;
 
   filteredDeclarations = all.filter(d => {
-    // Cho phép tìm bằng tên hoặc chuỗi [Mã] Tên
     const chuoiTimKiem = ((d.sieuthiCode || '') + ' ' + (d.sieuthiName || '')).toLowerCase();
     if (fST && !chuoiTimKiem.includes(fST)) return false;
     if (fFr && d.ngay < fFr) return false;
@@ -501,19 +502,14 @@ function renderTable() {
     const stat = { pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
     
     let pc = priceCfgs.find(p => {
-    // 1. So khớp Mã Sản Phẩm
-    let matchSP = String(p.sanphamCode).includes(d.sanphamCode) || String(d.sanphamCode).includes(p.sanphamCode);
-    
-    // 2. So khớp Siêu Thị
-    let matchST = String(p.sieuthiName).includes(d.sieuthiCode) || String(d.sieuthiName).includes(p.sieuthiName);
-    
-    // 3. So khớp Khoảng Thời Gian (Từ ngày - Đến ngày)
-    let matchDate = true;
-    if (p.fromDate && d.ngay < p.fromDate) matchDate = false;
-    if (p.toDate && d.ngay > p.toDate) matchDate = false;
+      let matchSP = String(p.sanphamCode).includes(d.sanphamCode) || String(d.sanphamCode).includes(p.sanphamCode);
+      let matchST = String(p.sieuthiName).includes(d.sieuthiCode) || String(d.sieuthiName).includes(p.sieuthiName);
+      let matchDate = true;
+      if (p.fromDate && d.ngay < p.fromDate) matchDate = false;
+      if (p.toDate && d.ngay > p.toDate) matchDate = false;
+      return matchSP && matchST && matchDate;
+    });
 
-    return matchSP && matchST && matchDate;
-  });
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
     let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁</button> `;
@@ -570,7 +566,7 @@ function bulkDeleteRecords() {
 }
 
 // ============================================================
-// DROPDOWN SEARCH (FIX LỖI KIỂU SỐ NUMBER)
+// DROPDOWN SEARCH
 // ============================================================
 function filterDrop(field, query) {
   const q = String(query).toLowerCase().trim();
@@ -786,7 +782,14 @@ function openSmartApproval(id) {
   
   smartApprovalId = id; 
   const priceCfgs = DB.get('priceConfig') || [];
-  const existingPrice = priceCfgs.find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+  const existingPrice = priceCfgs.find(p => {
+    let matchSP = String(p.sanphamCode).includes(d.sanphamCode) || String(d.sanphamCode).includes(p.sanphamCode);
+    let matchST = String(p.sieuthiName).includes(d.sieuthiCode) || String(d.sieuthiName).includes(p.sieuthiName);
+    let matchDate = true;
+    if (p.fromDate && d.ngay < p.fromDate) matchDate = false;
+    if (p.toDate && d.ngay > p.toDate) matchDate = false;
+    return matchSP && matchST && matchDate;
+  });
   
   let modalHtml = document.getElementById('smartApprovalModal');
   if (!modalHtml) {
@@ -865,8 +868,7 @@ function confirmSmartApproval() {
   if (!d) return;
 
   let priceCfgs = DB.get('priceConfig') || [];
-  priceCfgs = priceCfgs.filter(p => !(String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay));
-  priceCfgs.unshift({ sanphamCode: d.sanphamCode, sieuthiName: d.sieuthiName, date: d.ngay, rewardType, price, reward });
+  priceCfgs.unshift({ sanphamCode: d.sanphamCode, sieuthiName: d.sieuthiName, fromDate: d.ngay, toDate: d.ngay, rewardType, price, reward });
   DB.set('priceConfig', priceCfgs);
 
   d.status = 'approved';
@@ -891,30 +893,32 @@ function bulkApprove() {
   if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!');
   
   let d = DB.get('declarations') || []; 
-  const priceCfgs = DB.get('priceConfig') || []; // Kéo bảng giá ra để check
+  const priceCfgs = DB.get('priceConfig') || [];
   let count = 0;
   let missingPriceCount = 0;
 
   d.forEach(x => { 
     if (selectedIds.has(x.id) && x.status === 'pending' && (currentRole==='admin'||x.reviewerCode===currentUser.code)) {
-      // Logic kiểm tra xem đơn này đã được cấu hình giá chưa
-      let hasPrice = priceCfgs.some(p => 
-        String(p.sanphamCode).trim() === String(x.sanphamCode).trim() && 
-        p.date === x.ngay && 
-        (String(p.sieuthiName).trim() === String(x.sieuthiName).trim() || String(p.sieuthiName).includes(x.sieuthiCode))
-      );
+      let hasPrice = priceCfgs.some(p => {
+        let matchSP = String(p.sanphamCode).includes(x.sanphamCode) || String(x.sanphamCode).includes(p.sanphamCode);
+        let matchST = String(p.sieuthiName).includes(x.sieuthiCode) || String(x.sieuthiName).includes(p.sieuthiName);
+        let matchDate = true;
+        if (p.fromDate && x.ngay < p.fromDate) matchDate = false;
+        if (p.toDate && x.ngay > p.toDate) matchDate = false;
+        return matchSP && matchST && matchDate;
+      });
 
       if (hasPrice) {
         x.status = 'approved'; 
         count++;
       } else {
-        missingPriceCount++; // Đếm số đơn bị kẹt do thiếu giá
+        missingPriceCount++;
       }
     } 
   }); 
 
   if (missingPriceCount > 0) {
-    toast('warning', `Có ${missingPriceCount} đơn chưa có giá! Hệ thống chỉ duyệt các đơn đã cấu hình giá.`);
+    toast('warning', `Có ${missingPriceCount} đơn bị chặn do Ngành Hàng chưa cấu hình giá!`);
   }
 
   if (count > 0) {
@@ -922,9 +926,10 @@ function bulkApprove() {
     selectedIds.clear(); 
     logAction('DUYỆT NHIỀU', `${count} đơn`); 
     loadTable(); 
-    setTimeout(() => toast('success', `Đã duyệt thành công ${count} đơn!`), 500); 
+    setTimeout(() => toast('success', `Đã duyệt thành công ${count} đơn hợp lệ!`), 500); 
   }
 }
+
 function bulkReject() { 
   if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!'); 
   rejectTargetId = '__bulk__'; showModal('rejectModal'); 
@@ -933,7 +938,16 @@ function deleteRecord(id) { if (!confirm('Xóa bản ghi này?')) return; let d 
 
 function openDetail(id) {
   const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return;
-  const pc = (DB.get('priceConfig') || []).find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+  
+  const pc = (DB.get('priceConfig') || []).find(p => {
+    let matchSP = String(p.sanphamCode).includes(d.sanphamCode) || String(d.sanphamCode).includes(p.sanphamCode);
+    let matchST = String(p.sieuthiName).includes(d.sieuthiCode) || String(d.sieuthiName).includes(p.sieuthiName);
+    let matchDate = true;
+    if (p.fromDate && d.ngay < p.fromDate) matchDate = false;
+    if (p.toDate && d.ngay > p.toDate) matchDate = false;
+    return matchSP && matchST && matchDate;
+  });
+
   const pHtml = pc ? `<div style="background:#e8f4f8;padding:10px;border-radius:4px;"><b>Loại:</b> ${pc.rewardType} | <b>Giá bán:</b> ${fMoney(pc.price)}đ | <b>Mức thưởng:</b> ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#888">Chưa có cấu hình giá</i>`;
   const manuals = [];
   if (d.isManualSieuthi) manuals.push(`⚠ Siêu thị nhập tay: ${d.sieuthiName}`);
@@ -994,7 +1008,7 @@ function openManualListModal() {
 
 function copyManualList() {
   const txt = document.getElementById('manualListContent').innerText;
-  navigator.clipboard.writeText(txt).then(() => toast('success', 'Đã copy! Gửi cho Hải Phú - 268789 qua BCNB'));
+  navigator.clipboard.writeText(txt).then(() => toast('success', 'Đã copy! Gửi cho Hải Phú qua BCNB'));
 }
 
 // ============================================================
@@ -1020,10 +1034,9 @@ function downloadTemplateExcel() {
 
 function downloadPriceTemplateExcel() {
   const d = [
-    ['Mã SP','Tên Siêu Thị','Ngày (DD/MM/YYYY)','Loại thưởng','Giá bán','Mức thưởng'],
-    ['1053090000397','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','25/04/2026','Tiền cố định','25000','5000'],
-    ['1053090000397','BHX_HCM_002 - Lý Thường Kiệt','25/04/2026','% Lãi gộp','25000','15'],
-    ['2000000001234','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','26/04/2026','Sản lượng','30000','2000']
+    ['Mã SP','Tên Siêu Thị','Từ ngày (DD/MM/YYYY)','Đến ngày (DD/MM/YYYY)','Loại thưởng','Giá bán','Mức thưởng'],
+    ['1053090000397','BHX_HCM_001 - 473/4A Tỉnh Lộ 10','01/04/2026','30/04/2026','Tiền cố định','25000','5000'],
+    ['1053090000397','BHX_HCM_002 - Lý Thường Kiệt','01/04/2026','30/04/2026','% Lãi gộp','25000','15']
   ];
   const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Template_CauHinhGia");
@@ -1043,7 +1056,7 @@ function openImportModal(ctx) {
     document.getElementById('importReviewerWrap').style.display = 'block';
   } else {
     document.getElementById('importModalTitle').textContent = '📤 Import Cấu Hình Giá (.xlsx)';
-    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Mã SP | Tên Siêu Thị | Ngày (DD/MM/YYYY) | Loại thưởng | Giá bán | Mức thưởng</b>';
+    document.getElementById('importGuideText').innerHTML = 'Cột: <b>Mã SP | Tên Siêu Thị | Từ ngày (DD/MM/YYYY) | Đến ngày (DD/MM/YYYY) | Loại thưởng | Giá bán | Mức thưởng</b>';
     document.getElementById('importReviewerWrap').style.display = 'none';
   }
   document.getElementById('fileImportInput').value = '';
@@ -1124,23 +1137,30 @@ function parseImportPrice(rows) {
   let html = '', valid = 0, errors = 0;
   rows.forEach((r, i) => {
     if (!r[0]) return;
-    const spC = String(r[0]||'').trim(), stN = String(r[1]||'').trim(), dt = String(r[2]||'').trim(), type = String(r[3]||'Tiền cố định').trim(), price = String(r[4]||'0').trim(), reward = String(r[5]||'0').trim();
+    const spC = String(r[0]||'').trim(), stN = String(r[1]||'').trim(), fDt = String(r[2]||'').trim(), tDt = String(r[3]||'').trim(), type = String(r[4]||'Tiền cố định').trim(), price = String(r[5]||'0').trim(), reward = String(r[6]||'0').trim();
     
-    let pDt = dt; 
-    if (dt.includes('/')) { 
+    let pFDt = fDt, pTDt = tDt; 
+    if (fDt.includes('/')) { 
       try { 
-        const parts = dt.split('/'); 
-        if(parts[0].length === 4) pDt = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
-        else pDt = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; 
+        const parts = fDt.split('/'); 
+        if(parts[0].length === 4) pFDt = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        else pFDt = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; 
+      } catch {} 
+    }
+    if (tDt.includes('/')) { 
+      try { 
+        const parts = tDt.split('/'); 
+        if(parts[0].length === 4) pTDt = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        else pTDt = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; 
       } catch {} 
     }
 
-    if (spC && stN && pDt) {
-      parsedBulkRows.push({sanphamCode: spC, sieuthiName: stN, date: pDt, rewardType: type, price: pMoney(price), reward: pMoney(reward)});
-      html += `<div class="bulk-row valid">✅ ${spC} | ${stN} | ${pDt} | Giá: ${fMoney(price)}</div>`;
+    if (spC && stN) {
+      parsedBulkRows.push({sanphamCode: spC, sieuthiName: stN, fromDate: pFDt, toDate: pTDt, rewardType: type, price: pMoney(price), reward: pMoney(reward)});
+      html += `<div class="bulk-row valid">✅ ${spC} | ${stN} | ${pFDt} -> ${pTDt} | Giá: ${fMoney(price)}</div>`;
       valid++;
     } else {
-      html += `<div class="bulk-row error">❌ Lỗi dòng ${i+2}: Thiếu SP, ST hoặc Ngày</div>`;
+      html += `<div class="bulk-row error">❌ Lỗi dòng ${i+2}: Thiếu SP, ST</div>`;
       errors++;
     }
   });
@@ -1164,19 +1184,25 @@ function submitBulkImport() {
   } else if (importContext === 'priceconfig') {
     let c = DB.get('priceConfig') || [];
     parsedBulkRows.forEach(r => {
-      c = c.filter(x => !(String(x.sanphamCode)===String(r.sanphamCode) && x.sieuthiName===r.sieuthiName && x.date===r.date));
       c.unshift(r);
     });
     DB.set('priceConfig', c);
     logAction('IMPORT GIÁ/THƯỞNG', parsedBulkRows.length + ' dòng');
     closeModal('importModal');
     
-    // Auto Approve
+    // Auto Approve check
     const allDecls = DB.get('declarations') || [];
     const matchedPending = allDecls.filter(d => {
       if (d.status !== 'pending') return false;
       if (currentRole === 'nganhhang' && d.reviewerCode !== currentUser.code) return false;
-      return parsedBulkRows.some(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+      return parsedBulkRows.some(p => {
+        let matchSP = String(p.sanphamCode).includes(d.sanphamCode) || String(d.sanphamCode).includes(p.sanphamCode);
+        let matchST = String(p.sieuthiName).includes(d.sieuthiCode) || String(d.sieuthiName).includes(p.sieuthiName);
+        let matchDate = true;
+        if (p.fromDate && d.ngay < p.fromDate) matchDate = false;
+        if (p.toDate && d.ngay > p.toDate) matchDate = false;
+        return matchSP && matchST && matchDate;
+      });
     });
 
     if (matchedPending.length > 0) {
@@ -1197,12 +1223,25 @@ function submitBulkImport() {
 function confirmAutoApprove() {
   const allDecls = DB.get('declarations') || [];
   let approved = 0;
+  
+  const priceCfgs = DB.get('priceConfig') || [];
+  
   allDecls.forEach(d => {
     if (d.status !== 'pending') return;
     if (currentRole === 'nganhhang' && d.reviewerCode !== currentUser.code) return;
-    const matched = parsedBulkRows.find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
-    if (matched) { d.status = 'approved'; approved++; }
+    
+    let hasPrice = priceCfgs.some(p => {
+      let matchSP = String(p.sanphamCode).includes(d.sanphamCode) || String(d.sanphamCode).includes(p.sanphamCode);
+      let matchST = String(p.sieuthiName).includes(d.sieuthiCode) || String(d.sieuthiName).includes(p.sieuthiName);
+      let matchDate = true;
+      if (p.fromDate && d.ngay < p.fromDate) matchDate = false;
+      if (p.toDate && d.ngay > p.toDate) matchDate = false;
+      return matchSP && matchST && matchDate;
+    });
+    
+    if (hasPrice) { d.status = 'approved'; approved++; }
   });
+  
   DB.set('declarations', allDecls);
   closeModal('autoApproveModal');
   logAction('TỰ ĐỘNG DUYỆT (IMPORT GIÁ)', approved + ' đơn');
@@ -1254,20 +1293,19 @@ function renderPriceConfigList() {
 function uPC(i,k,v) { let c=DB.get('priceConfig')||[]; c[i][k]=v; DB.set('priceConfig',c); }
 function addPriceRow() { 
   let c = DB.get('priceConfig') || []; 
-  // Thay date thành fromDate và toDate
   c.unshift({sieuthiName:'', sanphamCode:'', fromDate:'', toDate:'', rewardType:'Tiền cố định', price:'', reward:''}); 
   DB.set('priceConfig',c); 
   renderPriceConfigList(); 
 }
 function deletePriceRow(i) { let c=DB.get('priceConfig')||[]; c.splice(i,1); DB.set('priceConfig',c); renderPriceConfigList(); }
 function savePriceConfig() { logAction('LƯU CẤU HÌNH GIÁ',''); closeModal('priceConfigModal'); toast('success','Đã lưu!'); loadTable(); }
+
 // ============================================================
 // HISTORY (LỊCH SỬ THAO TÁC)
 // ============================================================
 function openHistoryModal() {
   let hist = DB.get('historyLog') || [];
   
-  // Dùng String() ép kiểu để tránh lỗi sập ngầm khi biến user bị rỗng
   if (currentRole !== 'admin') {
     hist = hist.filter(h => h.user && String(h.user).includes(currentUser.code));
   }
@@ -1297,22 +1335,18 @@ function clearHistory() {
   DB.set('historyLog', []); 
   openHistoryModal(); 
 }
+
 // ============================================================
 // MASTER DATA CONTROL (ĐIỀU KHIỂN BẢNG MASTER DATA)
 // ============================================================
-
-// 1. Hàm mở Modal Master Data
 function openMasterDataModal() {
   if (typeof updateStatChips === 'function') updateStatChips();
-  switchMasterTab('importData'); // Mặc định mở tab Import trước
+  switchMasterTab('importData'); 
   showModal('masterDataModal');
 }
 
-// 2. Hàm chuyển đổi qua lại giữa các Tab
 function switchMasterTab(t) {
   const tabs = ['importData','users','sieuthi','sanpham','nhanvien'];
-  
-  // Ẩn tất cả nội dung tab và bỏ màu nút active
   tabs.forEach(x => {
     const contentEl = document.getElementById(`masterTab${cap(x)}`);
     if (contentEl) contentEl.classList.remove('active');
@@ -1321,18 +1355,15 @@ function switchMasterTab(t) {
   const tabBtns = document.querySelectorAll('.tab-btn');
   tabBtns.forEach(btn => btn.classList.remove('active'));
 
-  // Hiển thị tab được chọn
   const targetContent = document.getElementById(`masterTab${cap(t)}`);
   if (targetContent) targetContent.classList.add('active');
   
-  // Tìm và active nút bấm tương ứng (dựa vào text hoặc thứ tự)
   tabBtns.forEach(btn => {
     if (btn.getAttribute('onclick')?.includes(`'${t}'`)) {
       btn.classList.add('active');
     }
   });
 
-  // Nếu không phải tab Import thì load danh sách dữ liệu ra
   if (t !== 'importData') {
     let searchEl = document.getElementById(`search${cap(t)}`);
     if(searchEl) searchEl.value = '';
@@ -1340,7 +1371,6 @@ function switchMasterTab(t) {
   }
 }
 
-// 3. Hàm vẽ danh sách dữ liệu (User, ST, SP, NV) ra bảng
 function renderMasterList(type) {
   const el = document.getElementById(`master${cap(type)}List`);
   if (!el) return;
@@ -1371,7 +1401,7 @@ function renderMasterList(type) {
   } else {
     const items = DB.get(type) || [];
     let filtered = items.filter(s => !q || (s.code && String(s.code).toLowerCase().includes(q)) || (s.name && String(s.name).toLowerCase().includes(q)));
-    let limit = filtered.slice(0, 100); // Giới hạn 100 dòng cho mượt
+    let limit = filtered.slice(0, 100);
 
     let tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã/MST</th><th style="padding:6px;">Tên</th><th style="padding:6px;">Thông tin thêm</th><th></th></tr></thead><tbody>`;
     
@@ -1390,7 +1420,6 @@ function renderMasterList(type) {
   }
 }
 
-// 4. Các hàm Thêm/Xóa thủ công trong Master Data
 function addMasterUser() {
   const role = document.getElementById('newUserRole').value;
   const c = document.getElementById('newUserCode').value.trim();
