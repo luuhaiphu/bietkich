@@ -1,4 +1,31 @@
 // ============================================================
+// HELPER FUNCTIONS - THÊM VÀO ĐẦU FILE app.js
+// ============================================================
+function cap(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function showModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden');
+}
+
+function toast(type, msg) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ============================================================
 // DATABASE (Nâng cấp lên IndexedDB + Cơ chế RAM Cache)
 // ============================================================
 const RAM_DB = {}; 
@@ -50,7 +77,7 @@ idbRequest.onsuccess = function(e) {
   };
 };
 
-idbRequest.onerror = () => { console.error("Lỗi: Trình duyệt của bạn không hỗ trợ IndexedDB."); };
+idbRequest.onerror = () => { console.error("Lỗi: Trình duyệt của bạn không hỗ trợ IndexedDB."); initSystem(); };
 
 function saveToIndexedDB(key, value) {
   if (!idb) return;
