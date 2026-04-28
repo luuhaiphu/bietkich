@@ -381,7 +381,16 @@ function finishLogin() {
   loadTable();
 }
 
-function logout() { location.reload(); }
+function logout() {
+  currentUser = null; currentRole = null;
+  document.getElementById('appContainer').classList.add('blurred');
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('loginRole').value = '';
+  ['grpQLTP','grpNH','grpAdmin'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('loginHint').style.display = 'none';
+  document.getElementById('qltpConfirm').style.display = 'none';
+  document.getElementById('loginCodeQLTP').value = '';
+}
 
 function updateRoleUI() {
   const isAd = currentRole === 'admin', isNH = currentRole === 'nganhhang', isQL = currentRole === 'qltp';
@@ -411,7 +420,7 @@ function submitChangePass() {
 function loadTable() {
   let all = DB.get('declarations') || [];
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
-  if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code);
+  if (currentRole === 'nganhhang') all = all.filter(d => d.reviewerCode === currentUser.code); // Phân quyền duyệt của NH
 
   const fST = document.getElementById('filterSieuthi').value.toLowerCase();
   const fFr = document.getElementById('filterTuNgay').value;
@@ -446,7 +455,7 @@ function renderTable() {
     const nvTags = (d.nhanvienList||[]).map(n => n.isManual ? `<span class="manual-tag">⚠ ${n.name}</span>` : n.name).join(', ');
     const stat = { pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
     
-    // So khớp cấu hình giá (Mã SP + Tên ST + Ngày)
+    // Xử lý hiển thị Giá / Thưởng công khai theo ngày
     let pc = priceCfgs.find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
@@ -454,7 +463,7 @@ function renderTable() {
     if ((currentRole==='qltp'||currentRole==='admin') && (d.status==='rejected'))
       acts += `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">✏</button> `;
     
-    // Phân quyền Duyệt
+    // Quyền Admin Override phê duyệt
     if (d.status === 'pending') {
       if (currentRole === 'admin' || (currentRole === 'nganhhang' && d.reviewerCode === currentUser.code)) {
         acts += `<button class="btn btn-sm btn-success" onclick="approveRecord('${d.id}')">✅</button> <button class="btn btn-sm btn-danger" onclick="openRejectModal('${d.id}')">❌</button> `;
@@ -623,7 +632,7 @@ document.addEventListener('click', e => {
 });
 
 // ============================================================
-// TẠO / SỬA (Lưu trạng thái Pending ngay)
+// TẠO / SỬA (Đã ép trạng thái Pending)
 // ============================================================
 function openCreateModal() {
   currentEditId = null;
@@ -683,15 +692,15 @@ function submitForm() {
   if (currentEditId) {
     let idx = decls.findIndex(x => x.id === currentEditId);
     decls[idx] = { ...decls[idx], sieuthiId: st.id, sieuthiCode: st.code, sieuthiName: st.name, isManualSieuthi: st.isManual, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual, nhanvienList: nv, ngay, tuGio: tG, denGio: dG, reviewerCode: rCode, reviewerName: rName, status: 'pending', updatedAt: new Date().toISOString() };
-    toast('success', 'Cập nhật và Gửi duyệt thành công!'); logAction('SỬA ĐƠN', currentEditId);
+    toast('success', 'Cập nhật và gửi duyệt thành công!'); logAction('SỬA ĐƠN', currentEditId);
   } else {
     decls.unshift({ id: 'BK' + Date.now().toString().slice(-8), authorCode: currentUser.code, authorName: currentUser.name, sieuthiId: st.id, sieuthiCode: st.code||'', sieuthiName: st.name, isManualSieuthi: st.isManual||false, ngay, tuGio: tG, denGio: dG, sanphamId: sp.id, sanphamCode: sp.code, sanphamName: sp.name, isManualSanpham: sp.isManual||false, nhanvienList: nv, reviewerCode: rCode, reviewerName: rName, status: 'pending', createdAt: new Date().toISOString(), rejectReason: '' });
-    toast('success', 'Tạo mới và Gửi duyệt thành công!'); logAction('TẠO ĐƠN', '');
+    toast('success', 'Tạo mới và gửi duyệt thành công!'); logAction('TẠO ĐƠN', '');
   }
   DB.set('declarations', decls); closeModal('createModal'); loadTable();
 }
 
-// WORKFLOW DUYỆT
+// WORKFLOW
 function approveRecord(id) { let d = DB.get('declarations') || []; d.find(x => x.id === id).status = 'approved'; DB.set('declarations', d); logAction('DUYỆT', id); loadTable(); toast('success', 'Đã duyệt!'); }
 function openRejectModal(id) { rejectTargetId = id; document.getElementById('rejectReasonInput').value = ''; showModal('rejectModal'); }
 function confirmReject() {
@@ -712,7 +721,7 @@ function deleteRecord(id) { if (!confirm('Xóa bản ghi này?')) return; let d 
 function openDetail(id) {
   const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return;
   const pc = (DB.get('priceConfig') || []).find(p => p.sanphamCode === d.sanphamCode && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
-  const pHtml = pc ? `<div style="background:#e8f4f8;padding:10px;border-radius:4px;"><b>Loại:</b> ${pc.rewardType} | <b>Giá bán:</b> ${fMoney(pc.price)}đ | <b>Mức thưởng:</b> ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#888">Chưa có cấu hình giá cho ngày này</i>`;
+  const pHtml = pc ? `<div style="background:#e8f4f8;padding:10px;border-radius:4px;"><b>Loại:</b> ${pc.rewardType} | <b>Giá bán:</b> ${fMoney(pc.price)}đ | <b>Mức thưởng:</b> ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#888">Chưa có cấu hình giá</i>`;
   const manuals = [];
   if (d.isManualSieuthi) manuals.push(`⚠ Siêu thị nhập tay: ${d.sieuthiName}`);
   if (d.isManualSanpham) manuals.push(`⚠ Sản phẩm nhập tay: ${d.sanphamName}`);
@@ -808,7 +817,7 @@ function openImportModal(ctx) {
     document.getElementById('importReviewerWrap').style.display = 'none';
   }
   document.getElementById('fileImportInput').value = '';
-  document.getElementById('importReviewer').value = '';
+  if (document.getElementById('importReviewer')) document.getElementById('importReviewer').value = '';
   document.getElementById('bulkPreview').innerHTML = '';
   document.getElementById('btnImportSubmit').disabled = true;
   showModal('importModal');
@@ -841,7 +850,7 @@ function parseImportKB(rows) {
     if (!stObj) { isWarn = true; }
     if (currentRole === 'qltp' && stObj && stObj.qltpCode !== currentUser.code) errs.push('ST ngoài quyền');
     
-    // Xử lý chuỗi ngày (Excel đôi khi đưa ra format YYYY-MM-DD hoặc DD/MM/YYYY)
+    // Format ngày chuẩn YYYY-MM-DD
     let pDt = dt; 
     if (dt.includes('/')) { try { const [d,m,y] = dt.split('/'); pDt = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; } catch {} }
     if (!pDt || pDt.includes('undefined')) errs.push('Sai ngày');
@@ -920,7 +929,9 @@ function submitBulkImport() {
     });
     DB.set('priceConfig', c);
     logAction('IMPORT GIÁ/THƯỞNG', parsedBulkRows.length + ' dòng');
-    if (!document.getElementById('priceConfigModal').classList.contains('hidden')) renderPriceConfigList();
+    if (document.getElementById('priceConfigModal') && !document.getElementById('priceConfigModal').classList.contains('hidden')) {
+      renderPriceConfigList();
+    }
   }
   
   closeModal('importModal'); toast('success', `Import ${parsedBulkRows.length} thành công!`); loadTable();
@@ -1063,7 +1074,7 @@ function openHistoryModal() {
 function clearHistory() { if (!confirm('Xóa sạch lịch sử?')) return; DB.set('historyLog', []); openHistoryModal(); }
 
 // ============================================================
-// CẤU HÌNH GIÁ VÀ THƯỞNG THEO NGÀY
+// CẤU HÌNH GIÁ & THƯỞNG THEO NGÀY
 // ============================================================
 function openPriceConfigModal() { renderPriceConfigList(); showModal('priceConfigModal'); }
 function renderPriceConfigList() {
