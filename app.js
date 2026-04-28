@@ -1,10 +1,68 @@
 // ============================================================
-// DATABASE
+// DATABASE (Nâng cấp lên IndexedDB + Cơ chế RAM Cache)
 // ============================================================
+const RAM_DB = {}; // Lưu trữ trên RAM để tốc độ đọc tức thì, tương thích hoàn toàn code cũ
+
 const DB = {
-  get: k => { try { return JSON.parse(localStorage.getItem('bhx_v4_'+k) || 'null'); } catch { return null; } },
-  set: (k, v) => localStorage.setItem('bhx_v4_'+k, JSON.stringify(v))
+  get: k => {
+    // Đọc từ RAM tốc độ cao, clone object để bảo toàn tính nguyên vẹn dữ liệu
+    const val = RAM_DB['bhx_v4_' + k];
+    return val !== undefined ? JSON.parse(JSON.stringify(val)) : null;
+  },
+  set: (k, v) => {
+    // 1. Cập nhật vào RAM để giao diện phản hồi ngay lập tức
+    RAM_DB['bhx_v4_' + k] = v;
+    // 2. Ghi ngầm xuống IndexedDB để lưu trữ vĩnh viễn (Không giới hạn dung lượng)
+    saveToIndexedDB('bhx_v4_' + k, v);
+  }
 };
+
+let idb;
+const idbRequest = window.indexedDB.open('BHX_Database', 1);
+
+idbRequest.onupgradeneeded = function(e) {
+  const db = e.target.result;
+  if (!db.objectStoreNames.contains('store')) db.createObjectStore('store');
+};
+
+idbRequest.onsuccess = function(e) {
+  idb = e.target.result;
+  const tx = idb.transaction('store', 'readonly');
+  const store = tx.objectStore('store');
+  const req = store.getAll();
+  const keysReq = store.getAllKeys();
+
+  req.onsuccess = function() {
+    keysReq.onsuccess = function() {
+      const values = req.result;
+      const keys = keysReq.result;
+      keys.forEach((key, i) => { RAM_DB[key] = values[i]; });
+
+      // Tự động đồng bộ data cũ từ localStorage (nếu có) sang IndexedDB để không mất data
+      for (let i = 0; i < localStorage.length; i++) {
+        let key = localStorage.key(i);
+        if (key.startsWith('bhx_v4_') && RAM_DB[key] === undefined) {
+          try {
+            let val = JSON.parse(localStorage.getItem(key));
+            RAM_DB[key] = val;
+            saveToIndexedDB(key, val);
+          } catch(err){}
+        }
+      }
+
+      // Kích hoạt hệ thống sau khi load xong DB
+      initSystem();
+    };
+  };
+};
+
+idbRequest.onerror = () => { console.error("Lỗi: Trình duyệt của bạn không hỗ trợ IndexedDB."); };
+
+function saveToIndexedDB(key, value) {
+  if (!idb) return;
+  const tx = idb.transaction('store', 'readwrite');
+  tx.objectStore('store').put(value, key);
+}
 
 let currentUser = null, currentRole = null;
 let filteredDeclarations = [];
@@ -21,10 +79,11 @@ let hasManualEntry = false;
 // ============================================================
 // INIT
 // ============================================================
-window.onload = function() {
+function initSystem() {
   initSeedData();
   updateStatChips();
-};
+  // Khôi phục trạng thái login nếu cần (tuỳ chọn)
+}
 
 function initSeedData() {
   if (!DB.get('declarations')) DB.set('declarations', []);
