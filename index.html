@@ -102,6 +102,7 @@
   .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #444; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .form-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
 
   /* SEARCHABLE DROPDOWN */
   .search-drop-wrap { position: relative; }
@@ -157,7 +158,6 @@
   .manual-list-table th { background:#fff3cd; padding:6px 8px; text-align:left; border:1px solid #ffe082; }
   .manual-list-table td { padding:6px 8px; border:1px solid #fff3cd; }
 
-  /* EMPTY STATE */
   .empty-state { text-align:center; padding:50px 20px; color:#aaa; }
   .empty-state .icon { font-size:48px; margin-bottom:12px; }
 </style>
@@ -255,8 +255,9 @@
           <label>Trạng thái</label>
           <select id="filterStatus" class="form-control">
             <option value="">-- Tất cả --</option>
-            <option value="draft">Nháp</option><option value="pending">Chờ duyệt</option>
-            <option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option>
+            <option value="pending">Chờ duyệt</option>
+            <option value="approved">Đã duyệt</option>
+            <option value="rejected">Từ chối</option>
           </select>
         </div>
         <div class="filter-group" style="justify-content:flex-end;">
@@ -331,7 +332,7 @@
 <div class="modal-overlay hidden" id="createModal">
   <div class="modal modal-lg">
     <div class="modal-header">
-      <h3 id="createModalTitle">➕ Tạo Khai báo Biệt Kích</h3>
+      <h3 id="createModalTitle">➕ Khai báo Biệt Kích</h3>
       <button class="modal-close" onclick="closeModal('createModal')">×</button>
     </div>
     <div class="modal-body">
@@ -346,8 +347,8 @@
       </div>
       <div class="form-row-3">
         <div class="form-group"><label>Ngày Biệt Kích <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
-        <div class="form-group"><label>Từ giờ <small>(>=05:00)</small></label><input type="time" id="formTuGio" class="form-control"></div>
-        <div class="form-group"><label>Đến giờ <small>(<=22:00)</small></label><input type="time" id="formDenGio" class="form-control"></div>
+        <div class="form-group"><label>Từ giờ <small>(>=05:00)</small></label><input type="time" id="formTuGio" min="05:00" max="22:00" class="form-control"></div>
+        <div class="form-group"><label>Đến giờ <small>(<=22:00)</small></label><input type="time" id="formDenGio" min="05:00" max="22:00" class="form-control"></div>
       </div>
       <div class="form-group">
         <label>Sản phẩm <span style="color:red">*</span></label>
@@ -380,7 +381,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="submitForm()">💾 Lưu</button>
+      <button class="btn btn-primary" onclick="submitForm()">💾 Lưu & Chờ Duyệt</button>
       <button class="btn btn-secondary" onclick="closeModal('createModal')">Đóng</button>
     </div>
   </div>
@@ -392,7 +393,7 @@
     <div class="modal-body">
       <div style="background:#e8f4f8; padding:10px; border-left:4px solid var(--blue); margin-bottom:15px;" id="importGuideText"></div>
       
-      <div class="form-group" style="margin-bottom: 15px; background: #fff3cd; padding: 10px; border-radius: 6px; border: 1px solid #ffe082;">
+      <div class="form-group" id="importReviewerWrap" style="margin-bottom: 15px; background: #fff3cd; padding: 10px; border-radius: 6px; border: 1px solid #ffe082;">
         <label>Chọn Người duyệt (Ngành Hàng) cho lô này <span style="color:red">*</span></label>
         <select id="importReviewer" class="form-control" style="background: white;"></select>
       </div>
@@ -639,18 +640,21 @@
 
 <div class="modal-overlay hidden" id="priceConfigModal">
   <div class="modal modal-xl">
-    <div class="modal-header"><h3>💰 Cấu hình Giá & Thưởng</h3><button class="modal-close" onclick="closeModal('priceConfigModal')">×</button></div>
+    <div class="modal-header"><h3>💰 Cấu hình Giá & Thưởng (Theo Ngày)</h3><button class="modal-close" onclick="closeModal('priceConfigModal')">×</button></div>
     <div class="modal-body" style="background:#f5f5f5;">
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <button class="btn btn-primary" onclick="addPriceRow()">➕ Thêm dòng</button>
+        <button class="btn btn-success" onclick="openImportModal('priceconfig')">📤 Import hàng loạt (.xlsx)</button>
+      </div>
       <div id="priceConfigList"></div>
-      <button class="btn btn-primary" style="margin-top:10px;" onclick="addPriceRow()">➕ Thêm dòng</button>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-success" onclick="savePriceConfig()">💾 Lưu</button>
+      <button class="btn btn-success" onclick="savePriceConfig()">💾 Lưu tất cả</button>
       <button class="btn btn-secondary" onclick="closeModal('priceConfigModal')">Đóng</button>
     </div>
   </div>
 </div>
 
-<script src="app.js?v=1.1"></script>
+<script src="app.js?v=1.2"></script>
 </body>
 </html>
