@@ -485,12 +485,17 @@ function renderTable() {
 
   tbody.innerHTML = filteredDeclarations.map((d, i) => {
     const checked = selectedIds.has(d.id) ? 'checked' : '';
-    const stTag = d.isManualSieuthi ? `<span class="manual-tag">⚠ ${d.sieuthiName}</span>` : d.sieuthiName;
+    const stTag = d.isManualSieuthi ? `<span class="manual-tag">⚠ ${d.sieuthiName}</span>` : (d.sieuthiCode ? `<b>[${d.sieuthiCode}]</b> ${d.sieuthiName}` : d.sieuthiName);
     const spTag = d.isManualSanpham ? `<span class="manual-tag">⚠ ${d.sanphamName}</span>` : `[${d.sanphamCode}] ${d.sanphamName}`;
     const nvTags = (d.nhanvienList||[]).map(n => n.isManual ? `<span class="manual-tag">⚠ ${n.name}</span>` : n.name).join(', ');
     const stat = { pending:'<span class="badge badge-pending">Chờ duyệt</span>', approved:'<span class="badge badge-approved">Đã duyệt</span>', rejected:'<span class="badge badge-rejected">Từ chối</span>' }[d.status] || '';
     
-    let pc = priceCfgs.find(p => String(p.sanphamCode) === String(d.sanphamCode) && p.sieuthiName === d.sieuthiName && p.date === d.ngay);
+    let pc = priceCfgs.find(p => 
+  String(p.sanphamCode).trim() === String(d.sanphamCode).trim() && 
+  p.date === d.ngay && 
+  // Hỗ trợ tìm theo tên chính xác hoặc tìm theo Mã ST có chứa trong chuỗi
+  (String(p.sieuthiName).trim() === String(d.sieuthiName).trim() || String(p.sieuthiName).includes(d.sieuthiCode))
+);
     let priceStr = pc ? `<div style="color:var(--green);font-size:11px;"><b>${fMoney(pc.price)}đ</b><br>Thưởng: ${fMoney(pc.reward)}${pc.rewardType==='% Lãi gộp'?'%':''}</div>` : `<i style="color:#aaa;font-size:11px;">Chưa có</i>`;
 
     let acts = `<button class="btn btn-sm btn-secondary" onclick="openDetail('${d.id}')">👁</button> `;
@@ -866,15 +871,41 @@ function confirmReject() {
 
 function bulkApprove() { 
   if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!');
+  
   let d = DB.get('declarations') || []; 
+  const priceCfgs = DB.get('priceConfig') || []; // Kéo bảng giá ra để check
   let count = 0;
+  let missingPriceCount = 0;
+
   d.forEach(x => { 
     if (selectedIds.has(x.id) && x.status === 'pending' && (currentRole==='admin'||x.reviewerCode===currentUser.code)) {
-      x.status = 'approved'; count++;
+      // Logic kiểm tra xem đơn này đã được cấu hình giá chưa
+      let hasPrice = priceCfgs.some(p => 
+        String(p.sanphamCode).trim() === String(x.sanphamCode).trim() && 
+        p.date === x.ngay && 
+        (String(p.sieuthiName).trim() === String(x.sieuthiName).trim() || String(p.sieuthiName).includes(x.sieuthiCode))
+      );
+
+      if (hasPrice) {
+        x.status = 'approved'; 
+        count++;
+      } else {
+        missingPriceCount++; // Đếm số đơn bị kẹt do thiếu giá
+      }
     } 
   }); 
-  if (count === 0) return toast('error', 'Chưa chọn đơn hoặc đơn không hợp lệ!');
-  DB.set('declarations', d); selectedIds.clear(); logAction('DUYỆT NHIỀU', ''); loadTable(); toast('success', `Đã duyệt hàng loạt ${count} đơn!`); 
+
+  if (missingPriceCount > 0) {
+    toast('warning', `Có ${missingPriceCount} đơn chưa có giá! Hệ thống chỉ duyệt các đơn đã cấu hình giá.`);
+  }
+
+  if (count > 0) {
+    DB.set('declarations', d); 
+    selectedIds.clear(); 
+    logAction('DUYỆT NHIỀU', `${count} đơn`); 
+    loadTable(); 
+    setTimeout(() => toast('success', `Đã duyệt thành công ${count} đơn!`), 500); 
+  }
 }
 function bulkReject() { 
   if (selectedIds.size === 0) return toast('error', 'Vui lòng chọn ít nhất 1 đơn!'); 
@@ -1205,3 +1236,39 @@ function uPC(i,k,v) { let c=DB.get('priceConfig')||[]; c[i][k]=v; DB.set('priceC
 function addPriceRow() { let c=DB.get('priceConfig')||[]; c.unshift({sieuthiName:'',sanphamCode:'', date:'', rewardType:'Tiền cố định',price:'',reward:''}); DB.set('priceConfig',c); renderPriceConfigList(); }
 function deletePriceRow(i) { let c=DB.get('priceConfig')||[]; c.splice(i,1); DB.set('priceConfig',c); renderPriceConfigList(); }
 function savePriceConfig() { logAction('LƯU CẤU HÌNH GIÁ',''); closeModal('priceConfigModal'); toast('success','Đã lưu!'); loadTable(); }
+// ============================================================
+// HISTORY (LỊCH SỬ THAO TÁC)
+// ============================================================
+function openHistoryModal() {
+  let hist = DB.get('historyLog') || [];
+  
+  // Dùng String() ép kiểu để tránh lỗi sập ngầm khi biến user bị rỗng
+  if (currentRole !== 'admin') {
+    hist = hist.filter(h => h.user && String(h.user).includes(currentUser.code));
+  }
+  
+  const tbody = document.getElementById('historyBody');
+  if (tbody) {
+    tbody.innerHTML = hist.length ? hist.map(h =>
+      `<tr>
+        <td style="padding:8px;white-space:nowrap;font-size:11px;">${h.time}</td>
+        <td style="padding:8px;font-weight:bold;font-size:11px;">${h.user}</td>
+        <td style="padding:8px;color:var(--blue);font-size:11px;">${h.action}</td>
+        <td style="padding:8px;font-size:11px;">${h.detail}</td>
+      </tr>`
+    ).join('') : `<tr><td colspan="4" align="center" style="padding:20px;color:#999;">Chưa có lịch sử</td></tr>`;
+  }
+  
+  const btnClear = document.getElementById('btnClearHistory');
+  if (btnClear) {
+    btnClear.style.display = currentRole === 'admin' ? 'block' : 'none';
+  }
+  
+  showModal('historyModal');
+}
+
+function clearHistory() { 
+  if (!confirm('Xóa sạch lịch sử?')) return; 
+  DB.set('historyLog', []); 
+  openHistoryModal(); 
+}
