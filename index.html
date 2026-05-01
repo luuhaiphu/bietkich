@@ -7,19 +7,15 @@
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <style>
   :root {
-    --green: #1a7a3c; --green-dark: #145f2e; --blue: #0d6efd; --red: #dc3545;
-    --yellow: #ffc107; --orange: #fd7e14;
-    --yellow-bg: #fff8e1; --green-bg: #e8f5e9; --red-bg: #ffebee;
-    --text: #212529; --text-muted: #6c757d; --border: #dee2e6;
-    --shadow: 0 4px 12px rgba(0,0,0,0.15); --radius: 6px;
+    --green: #1a7a3c; --green-dark: #145f2e; --blue: #0d6efd; --red: #dc3545; --yellow: #ffc107; 
+    --text: #212529; --border: #dee2e6; --shadow: 0 4px 12px rgba(0,0,0,0.15); --radius: 6px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
   body { font-size: 13px; color: var(--text); background: #f0f0f0; overflow-x: hidden; }
 
+  /* MÀN HÌNH LOADING & MỜ */
   #appContainer { display: flex; flex-direction: column; min-height: 100vh; transition: filter 0.3s; }
   #appContainer.blurred { filter: blur(8px); pointer-events: none; user-select: none; height: 100vh; overflow: hidden; }
-
-  /* LOADING OVERLAY */
   #globalLoader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
   .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--green); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -27,226 +23,139 @@
   /* LOGIN */
   #loginOverlay { position: fixed; inset: 0; background: linear-gradient(135deg,#1a7a3c 0%,#0d4f26 100%); z-index: 10000; display: flex; align-items: center; justify-content: center; }
   .login-box { background: white; padding: 28px 32px; border-radius: 12px; width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
-  .login-box h2 { text-align: center; color: var(--green); margin-bottom: 6px; font-size: 18px; }
-  .login-box .sub { text-align:center; color:#888; font-size:12px; margin-bottom:20px; }
-  .login-box .form-group { margin-bottom: 15px; }
-  .login-box label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size:12px; }
-  .login-box .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
-  .login-box .btn-login { width: 100%; padding: 12px; font-size: 14px; margin-top:5px; background: var(--green); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-  .login-box .btn-login:hover { background: var(--green-dark); }
-  .login-suggest { position:absolute; top:100%; left:0; right:0; background:white; border:1px solid var(--border); border-top:none; border-radius:0 0 6px 6px; max-height:200px; overflow-y:auto; z-index:99999; box-shadow: var(--shadow); }
-  .login-suggest-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; font-size:13px; }
-  .login-suggest-item:hover { background:var(--green-bg); }
-  .login-input-wrap { position:relative; }
-
-  /* UI COMPONENTS */
-  .header { background: var(--green); color: white; display: flex; align-items: center; height: 50px; padding: 0 16px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-  .header-logo { font-size:20px; margin-right:10px; }
-  .header-title { font-weight: bold; font-size: 16px; margin-right: auto; letter-spacing: 0.5px; }
-  .header-user { background: rgba(255,255,255,0.15); border-radius: 6px; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-  
-  .breadcrumb { padding: 8px 16px; font-size: 13px; color: #333; background: white; border-bottom: 1px solid var(--border); }
-  .role-bar { background: #e3f2fd; border-bottom: 2px solid var(--blue); padding: 6px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: #084298; }
-
-  .main { padding: 12px 16px; flex: 1; }
-  .filter-area { background: white; padding: 12px 16px; border-radius: var(--radius); margin-bottom: 10px; box-shadow: var(--shadow); }
-  .filter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-  .filter-group { display: flex; flex-direction: column; gap: 4px; }
-  .filter-group label { font-size: 12px; font-weight: 600; color: #444; }
-  .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; min-width: 150px; }
-
-  .action-bar { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; background:white; padding:10px 14px; border-radius:var(--radius); box-shadow:var(--shadow); }
-  .btn { padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+  .login-box h2 { text-align: center; color: var(--green); margin-bottom: 20px; font-size: 18px; }
+  .form-group { margin-bottom: 15px; }
+  label { display: block; margin-bottom: 6px; font-weight: 600; color: #444; font-size:12px; }
+  .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  .btn { padding: 8px 14px; font-size: 13px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 5px;}
   .btn-primary { background: var(--blue); color: white; }
-  .btn-secondary { background: #6c757d; color: white; }
   .btn-success { background: var(--green); color: white; }
   .btn-danger { background: var(--red); color: white; }
-  .btn-warning { background: var(--yellow); color: #212529; }
-  .btn-import { background: var(--blue); color: white; }
-  
+  .btn-secondary { background: #6c757d; color: white; }
+  .btn-full { width: 100%; padding: 12px; font-size: 14px; }
+
+  /* HEADER & LAYOUT */
+  .header { background: var(--green); color: white; display: flex; align-items: center; height: 50px; padding: 0 16px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .header-title { font-weight: bold; font-size: 16px; margin-right: auto; }
+  .role-bar { background: #e3f2fd; border-bottom: 2px solid var(--blue); padding: 8px 16px; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: #084298; }
+  .main { padding: 16px; flex: 1; }
+
+  /* TABLE & ACTION BAR */
+  .action-bar { display:flex; gap:10px; margin-bottom:15px; background:white; padding:12px; border-radius:var(--radius); box-shadow:var(--shadow); }
   .table-area { background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-  .table-container { overflow-x: auto; max-height: calc(100vh - 300px); overflow-y: auto; }
+  .table-container { overflow-x: auto; max-height: calc(100vh - 250px); overflow-y: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th { background: var(--green); color: white; padding: 10px; text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
+  thead th { background: var(--green); color: white; padding: 10px; text-align: left; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
   tbody tr { border-bottom: 1px solid #eee; }
   tbody tr:hover { background: #f8fff9; }
-  tbody td { padding: 8px 10px; vertical-align: middle; }
+  tbody td { padding: 10px; vertical-align: top; }
 
-  .manual-tag { background: var(--yellow-bg); border: 1px solid var(--yellow); color: #6d4c00; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
-
-  /* MODALS */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; overflow-y: auto;}
-  .modal-overlay.hidden { display: none; }
-  .modal { background: white; border-radius: 10px; width: 620px; max-width: 95vw; box-shadow: 0 10px 30px rgba(0,0,0,0.25); display: flex; flex-direction: column; margin-bottom: 40px;}
-  .modal-lg { width: 880px; } .modal-xl { width: 1080px; }
-  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .modal-header h3 { font-size: 16px; margin: 0; color: var(--green); }
-  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #999; }
-  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
-  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; background: #fafafa; border-radius: 0 0 10px 10px; }
-
-  .form-control { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
-  .form-group { margin-bottom: 14px; }
-  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-
-  /* SEARCH DROPDOWN */
+  /* TÌM KIẾM NHÂN VIÊN DẠNG TAGS */
   .search-drop-wrap { position: relative; width: 100%; }
-  .search-drop-input { width:100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
-  .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-top: none; max-height: 220px; overflow-y: auto; z-index: 3000; box-shadow: var(--shadow); border-radius: 0 0 6px 6px; }
+  .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-top: none; max-height: 200px; overflow-y: auto; z-index: 3000; box-shadow: var(--shadow); border-radius: 0 0 6px 6px; }
   .dropdown-list.hidden { display: none; }
-  .dropdown-item { padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; font-size:13px; }
-  .dropdown-item:hover { background: var(--green-bg); }
-  .dropdown-item-manual { padding: 8px 12px; cursor: pointer; color: #e65100; background: #fff8e1; font-weight: 600; border-top:1px solid #ffe082; font-size:13px; }
+  .dropdown-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+  .dropdown-item:hover { background: #e8f5e9; }
   .selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .tag-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; background: var(--green-bg); color: #155724; border: 1px solid #c3e6cb; }
-  .tag-item.manual { background: var(--yellow-bg); color: #6d4c00; border: 1px solid var(--yellow); }
-  .tag-item .remove { cursor: pointer; font-size: 14px; line-height:1; }
+  .tag-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; background: #e8f5e9; color: #155724; border: 1px solid #c3e6cb; }
+  .tag-item .remove { cursor: pointer; font-size: 14px; }
 
-  /* CSS CHO GIAO DIỆN MASTER DATA IMPORT (MỚI THÊM LẠI) */
-  .import-master-card { background:white; border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:14px; position:relative; }
-  .import-master-card h4 { color:var(--green); margin-bottom:8px; font-size:14px; display:flex; align-items:center; gap:8px; }
-  .import-master-card .col-hint { background:#f8f9fa; border:1px solid #e0e0e0; border-radius:4px; padding:8px 12px; font-size:11.5px; color:#555; margin-bottom:10px; }
-  .import-master-card .col-hint span { display:inline-block; background:#e3f2fd; color:#1565c0; padding:2px 8px; border-radius:3px; margin:2px; font-weight:600; }
-  .data-stats { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
-  .stat-chip { background:var(--green-bg); color:#155724; border:1px solid #c3e6cb; border-radius:15px; padding:4px 12px; font-size:12px; font-weight:600; }
-  .dl-master-btn { position:absolute; top:16px; right:16px; color:var(--blue); text-decoration:none; font-size:12px; font-weight:600; }
+  /* DÒNG SẢN PHẨM (MULTI-ITEM) */
+  .product-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
 
-  .tabs { display: flex; border-bottom: 2px solid var(--green); margin-bottom: 15px; flex-wrap:wrap; }
-  .tab-btn { padding: 10px 18px; background: none; border: none; font-weight: 600; cursor: pointer; color: #666; margin-bottom: -2px; border-bottom: 2px solid transparent; font-size:13px; }
-  .tab-btn.active { color: var(--green); border-bottom-color: var(--green); background:#f0fff4; }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-  
-  .toast-container { position: fixed; top: 60px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
-  .toast { padding: 12px 20px; border-radius: 6px; color: white; font-weight: 600; box-shadow: var(--shadow); animation: slideIn 0.3s; min-width:200px; }
+  /* MODAL CHUNG */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: white; border-radius: 8px; width: 650px; max-width: 95vw; box-shadow: 0 10px 30px rgba(0,0,0,0.25); display: flex; flex-direction: column; max-height: 90vh; }
+  .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 16px; margin: 0; color: var(--green); }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; background: #fafafa; border-radius: 0 0 8px 8px; }
+
+  /* TOAST */
+  .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
+  .toast { padding: 12px 20px; border-radius: 6px; color: white; font-weight: 600; box-shadow: var(--shadow); animation: slideIn 0.3s; }
   .toast.success { background: var(--green); } .toast.error { background: var(--red); }
-  @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<!-- LOADING OVERLAY -->
+<!-- MÀN HÌNH LOADING -->
 <div id="globalLoader">
   <div class="spinner"></div>
-  <div id="loaderText" style="font-size: 16px; font-weight: bold; color: var(--green);">Đang kết nối Database máy chủ...</div>
+  <div id="loaderText" style="font-weight:bold; color:var(--green);">Đang kết nối Database...</div>
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- LOGIN -->
+<!-- MÀN HÌNH ĐĂNG NHẬP -->
 <div id="loginOverlay" class="hidden">
   <div class="login-box">
-    <div style="text-align:center; margin-bottom:16px;">
-      <div style="font-size:40px;">🦅</div>
-      <h2>BHX - KHAI BÁO BIỆT KÍCH</h2>
-      <div class="sub">Hệ thống quản lý bán hàng đội Biệt Kích</div>
-    </div>
-
+    <h2>🦅 KHAI BÁO BIỆT KÍCH</h2>
     <div class="form-group">
       <label>Phân hệ truy cập</label>
       <select id="loginRole" class="form-control" onchange="toggleLoginFields()">
-        <option value="" disabled selected>-- Chọn phân hệ --</option>
-        <option value="qltp">Quản Lý Tiên Phong (QLTP)</option>
+        <option value="qltp" selected>Quản Lý Tiên Phong (QLTP)</option>
         <option value="admin">Admin Hệ Thống</option>
       </select>
     </div>
-
-    <div id="grpQLTP" class="hidden">
-      <div class="form-group">
-        <label>Mã QLTP</label>
-        <div class="login-input-wrap">
-          <input type="text" id="loginCodeQLTP" class="form-control" placeholder="Gõ mã để tìm tên..." autocomplete="off" oninput="suggestQLTP(this.value)">
-          <div class="login-suggest hidden" id="qltpSuggest"></div>
-        </div>
-      </div>
-      <button class="btn-login" onclick="handleLogin()">ĐĂNG NHẬP</button>
+    <div id="grpQLTP">
+      <div class="form-group"><label>Mã QLTP</label><input type="text" id="loginCode" class="form-control" placeholder="Gõ Mã QLTP..." onkeydown="if(event.key==='Enter') handleLogin()"></div>
+      <div class="form-group"><label>Mật khẩu</label><input type="password" id="loginPassQLTP" class="form-control" placeholder="Mật khẩu" onkeydown="if(event.key==='Enter') handleLogin()"></div>
     </div>
-
     <div id="grpAdmin" class="hidden">
-      <div class="form-group">
-        <label>Mật khẩu Admin</label>
-        <input type="password" id="loginPassAdmin" class="form-control" placeholder="Nhập mật khẩu" onkeydown="if(event.key==='Enter') handleLogin()">
-      </div>
-      <button class="btn-login" onclick="handleLogin()">ĐĂNG NHẬP</button>
+      <div class="form-group"><label>Mật khẩu Admin</label><input type="password" id="loginPassAdmin" class="form-control" placeholder="Nhập mật khẩu Admin" onkeydown="if(event.key==='Enter') handleLogin()"></div>
     </div>
+    <button class="btn btn-success btn-full" onclick="handleLogin()">ĐĂNG NHẬP</button>
   </div>
 </div>
 
-<!-- CHANGE PASSWORD MODAL (Chỉ QLTP) -->
+<!-- ĐỔI MẬT KHẨU BẮT BUỘC -->
 <div class="modal-overlay hidden" id="forcePassModal">
   <div class="modal" style="width:400px;">
     <div class="modal-header"><h3>🔑 Đổi mật khẩu bắt buộc</h3></div>
     <div class="modal-body">
-      <p style="color:#e65100; margin-bottom:15px; font-size:12px;">Bạn đang dùng mật khẩu mặc định (1). Vui lòng đổi mật khẩu để bảo mật tài khoản.</p>
+      <p style="color:#e65100; font-size:12px; margin-bottom:15px;">Bạn đang dùng mật khẩu mặc định. Vui lòng đổi mật khẩu mới để bảo mật.</p>
       <div class="form-group"><label>Mật khẩu mới</label><input type="password" id="newPass" class="form-control"></div>
     </div>
     <div class="modal-footer"><button class="btn btn-primary" onclick="submitForcePass()">Lưu & Vào hệ thống</button></div>
   </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- GIAO DIỆN CHÍNH -->
 <div id="appContainer" class="blurred">
   <div class="header">
-    <span class="header-logo">🦅</span>
-    <div class="header-title">BHX - KHAI BÁO BIỆT KÍCH</div>
-    <div class="header-user">
-      <span style="font-size:18px;">👤</span>
-      <span id="headerUserName">...</span>
-    </div>
+    <div class="header-title">🦅 BHX - QUẢN LÝ BIỆT KÍCH</div>
   </div>
-
-  <div class="breadcrumb">Trang chủ &gt;&gt; <strong>Khai Báo Bán Hàng Đội Biệt Kích</strong></div>
+  
   <div class="role-bar">
     <span id="roleStatusText">...</span>
-    <button class="btn btn-sm btn-danger" style="margin-left:auto;" onclick="logout()">⬅ Đăng xuất</button>
+    <button class="btn btn-danger btn-sm" style="margin-left:auto;" onclick="logout()">Đăng xuất</button>
   </div>
 
   <div class="main">
-    <div class="filter-area">
-      <div class="filter-row">
-        <div class="filter-group">
-          <label>Tìm Siêu thị</label>
-          <div class="search-drop-wrap" style="width: 220px;">
-            <input type="text" id="filterSieuthi" placeholder="Gõ Mã hoặc Tên ST..." class="form-control" autocomplete="off" onfocus="filterDrop('filterST', this.value)" oninput="filterDrop('filterST', this.value)">
-            <div class="dropdown-list hidden" id="dropFilterst-list"></div>
-          </div>
-        </div>
-        <div class="filter-group"><label>Từ ngày</label><input type="date" id="filterTuNgay" class="form-control"></div>
-        <div class="filter-group"><label>Đến ngày</label><input type="date" id="filterDenNgay" class="form-control"></div>
-        <div class="filter-group" style="justify-content:flex-end;">
-          <label>&nbsp;</label>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-search" onclick="loadTable()">🔍 Lọc dữ liệu</button>
-            <button class="btn btn-primary" onclick="openCreateModal()">➕ Tạo Khai Báo</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="action-bar">
-      <button class="btn btn-export" onclick="exportExcel()">📥 Export (.xlsx)</button>
-      <button class="btn btn-danger hidden" id="btnBulkDelete" onclick="bulkDeleteRecords()">🗑 Xóa đã chọn</button>
-      <div style="margin-left:auto; display:flex; gap:6px;">
-        <button class="btn btn-secondary btn-sm" onclick="openHistoryModal()">📜 Lịch Sử Log</button>
-        <button class="btn btn-warning btn-sm hidden" id="btnAdminMaster" onclick="openMasterDataModal()">⚙ Import Master Data & Phân Quyền</button>
+      <button class="btn btn-primary" id="btnTaoMoi" onclick="openCreateModal()">➕ Khai Báo Biệt Kích</button>
+      <div style="margin-left:auto; display:flex; gap:10px;">
+        <button class="btn btn-warning hidden" id="btnAdminMaster" onclick="openAdminModal()">⚙ Quản lý Master Data</button>
       </div>
     </div>
 
     <div class="table-area">
-      <div style="padding:8px 16px; background:#f8f9fa; border-bottom:1px solid #ddd; display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-        <label for="selectAll" style="font-weight:bold; font-size:12px;">Chọn tất cả trang này</label>
-        <span id="selectedCount" style="color:var(--blue); font-size:12px;"></span>
-        <span id="totalCount" style="margin-left:auto; color:#888; font-size:12px;"></span>
-      </div>
       <div class="table-container">
-        <table id="mainTable">
+        <table>
           <thead>
             <tr>
-              <th style="width:36px; text-align:center;"></th>
-              <th>#</th><th>QLTP</th><th>Siêu thị</th><th>Ngày BK</th>
-              <th>Giờ (24h)</th><th>Danh sách Sản phẩm</th><th>Danh sách Nhân viên</th><th>Thao tác</th>
+              <th>#</th>
+              <th>Người Khai Báo</th>
+              <th>Siêu thị</th>
+              <th>Ngày & Giờ (24h)</th>
+              <th>Sản phẩm Khai báo</th>
+              <th>DS Nhân viên</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -256,216 +165,97 @@
   </div>
 </div>
 
-<!-- MODAL CREATE/EDIT -->
+<!-- MODAL KHAI BÁO (MULTI-PRODUCT) -->
 <div class="modal-overlay hidden" id="createModal">
-  <div class="modal modal-lg">
+  <div class="modal">
     <div class="modal-header">
-      <h3 id="createModalTitle">➕ Khai báo Biệt Kích</h3>
+      <h3 id="createModalTitle">Khai Báo Biệt Kích</h3>
       <button class="modal-close" onclick="closeModal('createModal')">×</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="editId">
+      
       <div class="form-group">
-        <label>Siêu thị (Chỉ hiển thị ST bạn quản lý) <span style="color:red">*</span></label>
-        <div class="search-drop-wrap" id="dropSieuthi">
-          <input class="search-drop-input" id="inputSieuthi" type="text" placeholder="Gõ mã hoặc tên siêu thị..." autocomplete="off" oninput="filterDrop('sieuthi',this.value)" onfocus="filterDrop('sieuthi',this.value)">
-          <div class="dropdown-list hidden" id="dropSieuthi-list"></div>
-          <div class="selected-tags" id="sieuthiSelected"></div>
-        </div>
+        <label>Siêu thị <span style="color:red">*</span></label>
+        <input type="text" id="inputSieuthi" class="form-control" list="listDataST" placeholder="Gõ chọn Mã - Tên Siêu thị">
       </div>
-      <div class="form-row-3">
-        <div class="form-group"><label>Ngày Biệt Kích <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
-        <div class="form-group"><label>Từ giờ <span style="color:red">*</span></label><input type="time" id="formTuGio" class="form-control"></div>
-        <div class="form-group"><label>Đến giờ <span style="color:red">*</span></label><input type="time" id="formDenGio" class="form-control"></div>
+
+      <div style="display:flex; gap:15px; margin-bottom:15px;">
+        <div style="flex:1;"><label>Ngày <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
+        <div style="flex:1;"><label>Từ giờ <span style="color:red">*</span></label><input type="time" id="formTuGio" class="form-control"></div>
+        <div style="flex:1;"><label>Đến giờ <span style="color:red">*</span></label><input type="time" id="formDenGio" class="form-control"></div>
       </div>
+
+      <!-- KHU VỰC NHẬP NHIỀU SẢN PHẨM -->
+      <div class="form-group" style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid var(--border);">
+        <label>Sản phẩm Biệt kích <span style="color:red">*</span></label>
+        <div id="productRowsContainer"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addProductRow()">➕ Thêm sản phẩm</button>
+      </div>
+
       <div class="form-group">
-        <label>Danh sách Sản phẩm <span style="color:red">*</span> <small style="color:#888;">(Có thể chọn nhiều SP)</small></label>
-        <div class="search-drop-wrap" id="dropSanpham">
-          <input class="search-drop-input" id="inputSanpham" type="text" placeholder="Gõ mã hoặc tên sản phẩm..." autocomplete="off" oninput="filterDrop('sanpham',this.value)" onfocus="filterDrop('sanpham',this.value)">
-          <div class="dropdown-list hidden" id="dropSanpham-list"></div>
-          <div class="selected-tags" id="sanphamSelected"></div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>DS Nhân viên áp dụng <span style="color:red">*</span> <small style="color:#888;">(Có thể chọn nhiều NV)</small></label>
+        <label>Nhân viên áp dụng <span style="color:red">*</span></label>
         <div class="search-drop-wrap" id="dropNhanvien">
-          <input class="search-drop-input" id="inputNhanvien" type="text" placeholder="Gõ mã hoặc tên NV..." autocomplete="off" oninput="filterDrop('nhanvien',this.value)" onfocus="filterDrop('nhanvien',this.value)">
+          <input type="text" id="inputNhanvien" class="form-control" placeholder="Gõ tìm Nhân viên..." autocomplete="off" oninput="filterNV(this.value)" onfocus="filterNV(this.value)">
           <div class="dropdown-list hidden" id="dropNhanvien-list"></div>
           <div class="selected-tags" id="nhanvienSelected"></div>
         </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="submitForm()">💾 Lưu Thông Tin</button>
+      <button class="btn btn-success" onclick="submitForm()">💾 Lưu Khai Báo</button>
       <button class="btn btn-secondary" onclick="closeModal('createModal')">Đóng</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL MASTER DATA (GIAO DIỆN NÂNG CẤP TỪ ẢNH) -->
-<div class="modal-overlay hidden" id="masterDataModal">
-  <div class="modal modal-xl">
-    <div class="modal-header"><h3>⚙ Quản lý Master Data (Admin)</h3><button class="modal-close" onclick="closeModal('masterDataModal')">×</button></div>
-    <div class="modal-body" style="background:#f5f5f5;">
-      
-      <!-- TABS -->
-      <div class="tabs" style="background:white; padding:10px 10px 0 10px; border-radius:8px 8px 0 0; margin-bottom:0;">
-        <button class="tab-btn active" onclick="switchMasterTab('importData')">📥 Import Data</button>
-        <button class="tab-btn" onclick="switchMasterTab('users')">👤 Quản lý QLTP (<span id="countUsers">0</span>)</button>
-        <button class="tab-btn" onclick="switchMasterTab('sieuthi')">🏪 Siêu thị (<span id="countSieuthi">0</span>)</button>
-        <button class="tab-btn" onclick="switchMasterTab('sanpham')">📦 Sản phẩm (<span id="countSanpham">0</span>)</button>
-        <button class="tab-btn" onclick="switchMasterTab('nhanvien')">👥 Nhân viên (<span id="countNhanvien">0</span>)</button>
+<!-- MODAL ADMIN -->
+<div class="modal-overlay hidden" id="adminModal">
+  <div class="modal">
+    <div class="modal-header"><h3>⚙ Quản lý User (QLTP)</h3><button class="modal-close" onclick="closeModal('adminModal')">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex; gap:10px; margin-bottom:15px;">
+        <input type="text" id="newQltpCode" class="form-control" placeholder="Mã QLTP" style="width:120px;">
+        <input type="text" id="newQltpName" class="form-control" placeholder="Tên QLTP" style="flex:1;">
+        <button class="btn btn-success" onclick="addMasterUser()">➕ Thêm</button>
       </div>
-
-      <!-- TAB IMPORT DATA -->
-      <div id="masterTabImportData" class="tab-content active" style="padding:15px 0;">
-        
-        <!-- CARD PHÂN BỔ -->
-        <div class="import-master-card">
-          <a href="#" class="dl-master-btn" onclick="dlMasterTpl('phanbo')">⬇ Tải Mẫu Phân Bổ</a>
-          <h4>🏪 File Phân Bổ (QLTP + Siêu Thị)</h4>
-          <div class="col-hint">
-            Cột cần thiết: <span>MST</span> <span>Tên ST</span> <span>QLTP tháng 4.2026 (tên rút gọn)</span> <span>Cụm miền</span> <span>Tỉnh/thành</span> <span>Mô hình</span> <span>ON</span>
-            <br><small style="color:#888;">📌 Cột "QLTP..." format: <strong>[Mã] - [Tên]</strong> (VD: 27506 - Bá Thành)</small>
-          </div>
-          <div class="data-stats">
-            <span class="stat-chip" id="statQLTP">QLTP: 0</span>
-            <span class="stat-chip" id="statST">Siêu thị: 0</span>
-          </div>
-          <div style="margin-top:12px;">
-            <label class="btn btn-import btn-sm" style="cursor:pointer;">
-              📂 Chọn File Phân Bổ (.xlsx)
-              <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('phanbo', this)">
-            </label>
-          </div>
-        </div>
-
-        <!-- CARD FMCG -->
-        <div class="import-master-card">
-          <a href="#" class="dl-master-btn" onclick="dlMasterTpl('fmcg')">⬇ Tải Mẫu FMCG</a>
-          <h4>🛒 File Sản Phẩm FMCG</h4>
-          <div class="col-hint">
-            Cột cần thiết: <span>Mã sản phẩm</span> <span>Tên sản phẩm</span>
-            <br><small style="color:#888;">📌 Hệ thống chỉ lấy 2 cột này, các cột còn lại bỏ qua</small>
-          </div>
-          <div class="data-stats"><span class="stat-chip" id="statFMCG">SP FMCG: 0</span></div>
-          <div style="margin-top:12px;">
-            <label class="btn btn-import btn-sm" style="cursor:pointer;">
-              📂 Chọn File FMCG (.xlsx)
-              <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('fmcg', this)">
-            </label>
-          </div>
-        </div>
-
-        <!-- CARD FRESH -->
-        <div class="import-master-card">
-          <a href="#" class="dl-master-btn" onclick="dlMasterTpl('fresh')">⬇ Tải Mẫu Fresh</a>
-          <h4>🥦 File Sản Phẩm Fresh</h4>
-          <div class="col-hint">
-            Cột cần thiết: <span>Mã sản phẩm</span> <span>Tên sản phẩm</span> (+ Tên viết tắt nếu có)
-          </div>
-          <div class="data-stats"><span class="stat-chip" id="statFresh">SP Fresh: 0</span></div>
-          <div style="margin-top:12px;">
-            <label class="btn btn-import btn-sm" style="cursor:pointer;">
-              📂 Chọn File Fresh (.xlsx)
-              <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('fresh', this)">
-            </label>
-          </div>
-        </div>
-
-        <!-- CARD NHÂN VIÊN -->
-        <div class="import-master-card">
-          <a href="#" class="dl-master-btn" onclick="dlMasterTpl('nhanvien')">⬇ Tải Mẫu Nhân Viên</a>
-          <h4>👥 File Danh Sách Nhân Viên</h4>
-          <div class="col-hint">
-            Cột cần thiết: <span>Mã Nhân Viên</span> <span>Tên Nhân Viên</span> <span>Mã Siêu Thị</span>
-            <br><small style="color:#888;">📌 Dòng tiêu đề ở hàng 4. NV sẽ được lọc theo Siêu Thị mà QLTP quản lý</small>
-          </div>
-          <div class="data-stats"><span class="stat-chip" id="statNV">NV: 0</span></div>
-          <div style="margin-top:12px;">
-            <label class="btn btn-import btn-sm" style="cursor:pointer;">
-              📂 Chọn File Nhân Viên (.xlsx)
-              <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('nhanvien', this)">
-            </label>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- TAB USERS -->
-      <div id="masterTabUsers" class="tab-content" style="background:white; padding:15px; border-radius:0 0 8px 8px;">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newQltpCode" class="form-control" placeholder="Mã QLTP" style="width:120px;">
-          <input type="text" id="newQltpName" class="form-control" placeholder="Tên QLTP" style="flex:1;">
-          <button class="btn btn-success" onclick="addMasterUser()">➕ Thêm QLTP</button>
-        </div>
-        <div id="masterUsersList"></div>
-      </div>
-
-      <!-- TAB SIÊU THỊ -->
-      <div id="masterTabSieuthi" class="tab-content" style="background:white; padding:15px; border-radius:0 0 8px 8px;">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newSieuthiCode" class="form-control" placeholder="Mã ST" style="width:120px;">
-          <input type="text" id="newSieuthiName" class="form-control" placeholder="Tên Siêu thị" style="flex:1;">
-          <input type="text" id="newSieuthiQLTP" class="form-control" placeholder="Mã QLTP Quản lý" style="width:150px;">
-          <button class="btn btn-success" onclick="addMasterItem('sieuthi')">➕ Thêm</button>
-        </div>
-        <div id="masterSieuthiList"></div>
-      </div>
-
-      <!-- TAB SẢN PHẨM -->
-      <div id="masterTabSanpham" class="tab-content" style="background:white; padding:15px; border-radius:0 0 8px 8px;">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newSanphamCode" class="form-control" placeholder="Mã SP" style="width:120px;">
-          <input type="text" id="newSanphamName" class="form-control" placeholder="Tên SP" style="flex:1;">
-          <button class="btn btn-success" onclick="addMasterItem('sanpham')">➕ Thêm</button>
-        </div>
-        <div id="masterSanphamList"></div>
-      </div>
-
-      <!-- TAB NHÂN VIÊN -->
-      <div id="masterTabNhanvien" class="tab-content" style="background:white; padding:15px; border-radius:0 0 8px 8px;">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newNhanvienCode" class="form-control" placeholder="Mã NV" style="width:120px;">
-          <input type="text" id="newNhanvienName" class="form-control" placeholder="Tên NV" style="flex:1;">
-          <input type="text" id="newNhanvienST" class="form-control" placeholder="Mã Siêu thị" style="width:150px;">
-          <button class="btn btn-success" onclick="addMasterItem('nhanvien')">➕ Thêm</button>
-        </div>
-        <div id="masterNhanvienList"></div>
-      </div>
-
+      <table style="width:100%; border-collapse:collapse; text-align:left;">
+        <thead style="background:#eee;"><tr><th style="padding:8px;">Mã</th><th style="padding:8px;">Tên</th><th style="padding:8px;">Mật khẩu</th><th></th></tr></thead>
+        <tbody id="masterUsersList"></tbody>
+      </table>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('masterDataModal')">Đóng</button></div>
   </div>
 </div>
 
+<!-- DATALIST HTML5 (Cho Siêu thị & Sản phẩm) -->
+<datalist id="listDataST"></datalist>
+<datalist id="listDataSP"></datalist>
+
 <script>
 // ============================================================
-// ⚠️ QUAN TRỌNG: COPY LINK WEB APP (GOOGLE APPS SCRIPT) CỦA BẠN DÁN VÀO ĐÂY:
-const API_URL = "https://script.google.com/macros/s/AKfycbx-J8mYleE8VGpZFtFEGNLJpuYJK3yHKIU6bPtSeEWHw7QkgrtdQG8aQEES7UF0DZsdPg/exec"; 
+// DATABASE & SYNC (GOOGLE SHEETS)
 // ============================================================
+// ⚠️ QUAN TRỌNG: COPY LINK WEB APP CỦA BẠN DÁN VÀO ĐÂY:
+const API_URL = "https://script.google.com/macros/s/AKfycbzzzzzzzzzzzzzzzzzzzzzzzz/exec"; 
 
 let RAM_DB = {};
-let currentUser = null, currentRole = null;
-let filteredDeclarations = [];
-let selectedIds = new Set();
-let currentEditId = null;
-let dropSel = { filterST: null, sieuthi: null, sanphams: [], nhanvien: [] };
+let currentUser = null; 
+let currentRole = null;
+let nhanvienTags = []; // Lưu mảng tag nhân viên
 
-function showGlobalLoader(text) { document.getElementById('loaderText').textContent = text; document.getElementById('globalLoader').style.display = 'flex'; }
-function hideGlobalLoader() { document.getElementById('globalLoader').style.display = 'none'; }
+function showLoader() { document.getElementById('globalLoader').style.display = 'flex'; }
+function hideLoader() { document.getElementById('globalLoader').style.display = 'none'; }
 
-// DATABASE CLOUD SYNC
 const DB = {
   get: k => RAM_DB[k] ? JSON.parse(JSON.stringify(RAM_DB[k])) : null,
   set: async (k, v) => {
-    RAM_DB[k] = v; // Cập nhật local RAM
+    RAM_DB[k] = v; // Update local RAM immediately for fast UI
     try {
-      showGlobalLoader('Đang đồng bộ dữ liệu lên máy chủ...');
+      showLoader();
       await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: k, value: v }) });
-      hideGlobalLoader();
+      hideLoader();
     } catch (e) {
-      hideGlobalLoader(); toast('error', 'Lỗi đồng bộ dữ liệu!');
+      hideLoader(); toast('error', 'Lỗi đồng bộ máy chủ!');
     }
   }
 };
@@ -475,34 +265,29 @@ window.onload = async function() {
     const res = await fetch(API_URL);
     RAM_DB = await res.json();
     initSeedData();
-    hideGlobalLoader();
+    hideLoader();
     document.getElementById('loginOverlay').classList.remove('hidden');
   } catch(e) {
-    hideGlobalLoader();
-    alert('Không thể kết nối Server Database. Đang chạy offline để test!');
+    hideLoader(); alert('Lỗi kết nối Server! Chạy offline.');
     initSeedData(); document.getElementById('loginOverlay').classList.remove('hidden');
   }
 };
 
 function initSeedData() {
   if (!RAM_DB['adminPass']) DB.set('adminPass', '24122004');
-  if (!RAM_DB['qltpList']) DB.set('qltpList', [{ code: 'QLTP01', name: 'Tân', pass: '1' }]);
-  if (!RAM_DB['sieuthi']) DB.set('sieuthi', [{id:'ST01', code:'ST01', name:'BHX Quận 1', qltpCode:'QLTP01'}]);
-  if (!RAM_DB['sanpham']) DB.set('sanpham', [{id:'SP01', code:'SP01', name:'Coca Cola'}, {id:'SP02', code:'SP02', name:'Pepsi'}]);
-  if (!RAM_DB['nhanvien']) DB.set('nhanvien', [{id:'NV01', code:'NV01', name:'Nguyễn Văn A'}]);
+  if (!RAM_DB['users']) DB.set('users', [{ code: 'QLTP01', name: 'Nguyễn Văn Tân', pass: '1' }]);
+  if (!RAM_DB['sieuthi']) DB.set('sieuthi', [{ code: 'ST001', name: 'BHX Lê Văn Sỹ'}, {code: 'ST002', name: 'BHX Nguyễn Trãi'}]);
+  if (!RAM_DB['sanpham']) DB.set('sanpham', [{ code: 'SP001', name: 'Bia Tiger'}, {code: 'SP002', name: 'Mì Hảo Hảo'}]);
+  if (!RAM_DB['nhanvien']) DB.set('nhanvien', [{ code: 'NV001', name: 'Nguyễn Văn A'}, {code: 'NV002', name: 'Trần Thị B'}]);
   if (!RAM_DB['declarations']) DB.set('declarations', []);
-  updateStatChips();
 }
 
-// UTILS
-function cap(s) { return s?s.charAt(0).toUpperCase()+s.slice(1):""; }
+function toast(type, msg) { const c = document.getElementById('toastContainer'); const t = document.createElement('div'); t.className = 'toast '+type; t.textContent=msg; c.appendChild(t); setTimeout(()=>t.remove(), 3000); }
 function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-function toast(t, m) { const c = document.getElementById('toastContainer'); const el = document.createElement('div'); el.className = 'toast '+t; el.textContent=m; c.appendChild(el); setTimeout(()=>el.remove(), 3500); }
-function fDate(iso) { if(!iso) return ''; let p = iso.split('T')[0].split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:iso; }
 
 // ============================================================
-// LOGIN & AUTHENTICATION (GIỚI HẠN ROLE: ADMIN & QLTP)
+// LOGIN (CHỈ ADMIN & QLTP)
 // ============================================================
 function toggleLoginFields() {
   const r = document.getElementById('loginRole').value;
@@ -510,67 +295,54 @@ function toggleLoginFields() {
   document.getElementById('grpAdmin').classList.toggle('hidden', r !== 'admin');
 }
 
-function suggestQLTP(q) {
-  q = q.trim().toLowerCase();
-  const sg = document.getElementById('qltpSuggest');
-  if(!q) return sg.classList.add('hidden');
-  const ls = DB.get('qltpList') || [];
-  const res = ls.filter(x => String(x.code).toLowerCase().includes(q) || String(x.name).toLowerCase().includes(q));
-  sg.innerHTML = res.length ? res.map(x => `<div class="login-suggest-item" onclick="selectLoginQLTP('${x.code}')"><span class="mst">${x.code}</span><span class="name">${x.name}</span></div>`).join('') : '<div style="padding:10px;">Không tìm thấy</div>';
-  sg.classList.remove('hidden');
-}
-
-function selectLoginQLTP(code) { document.getElementById('loginCodeQLTP').value = code; document.getElementById('qltpSuggest').classList.add('hidden'); }
-
-async function handleLogin() {
+function handleLogin() {
   const r = document.getElementById('loginRole').value;
-  if (!r) return toast('error', 'Chọn phân hệ!');
-  
   if (r === 'admin') {
     const p = document.getElementById('loginPassAdmin').value;
     if (p !== DB.get('adminPass')) return toast('error', 'Sai mật khẩu Admin!');
     currentUser = { code: 'admin', name: 'Admin BHX' }; currentRole = 'admin';
     proceedLogin();
-  } else if (r === 'qltp') {
-    const c = document.getElementById('loginCodeQLTP').value.trim();
-    if (!c) return toast('error', 'Nhập mã QLTP!');
-    const ls = DB.get('qltpList') || [];
-    const u = ls.find(x => x.code === c);
-    if (!u) return toast('error', `Tài khoản QLTP [${c}] không tồn tại!`);
+  } else {
+    const c = document.getElementById('loginCode').value.trim().toUpperCase();
+    const p = document.getElementById('loginPassQLTP').value;
+    if (!c || !p) return toast('error', 'Nhập mã và mật khẩu!');
     
-    if (u.pass === '1') {
-      currentUser = u; currentRole = 'qltp';
+    const users = DB.get('users') || [];
+    const u = users.find(x => x.code === c);
+    if (!u) return toast('error', `Mã QLTP [${c}] không tồn tại!`);
+    if (u.pass !== p) return toast('error', 'Sai mật khẩu!');
+    
+    currentUser = u; currentRole = 'qltp';
+    if (p === '1') {
       document.getElementById('loginOverlay').classList.add('hidden');
       showModal('forcePassModal');
     } else {
-      let p = prompt('Nhập mật khẩu của bạn:');
-      if (p === null) return; 
-      if (p !== u.pass) return toast('error', 'Sai mật khẩu!');
-      currentUser = u; currentRole = 'qltp'; proceedLogin();
+      proceedLogin();
     }
   }
 }
 
 async function submitForcePass() {
   const np = document.getElementById('newPass').value;
-  if(!np || np.length < 3) return toast('error', 'Mật khẩu quá ngắn!');
-  let ls = DB.get('qltpList') || [];
-  let idx = ls.findIndex(x => x.code === currentUser.code);
-  if(idx > -1) { ls[idx].pass = np; await DB.set('qltpList', ls); }
+  if (!np || np.length < 3) return toast('error', 'Mật khẩu phải từ 3 ký tự!');
+  let users = DB.get('users') || [];
+  let idx = users.findIndex(x => x.code === currentUser.code);
+  if (idx > -1) { users[idx].pass = np; await DB.set('users', users); }
   closeModal('forcePassModal'); proceedLogin();
 }
 
 function proceedLogin() {
   document.getElementById('loginOverlay').classList.add('hidden');
   document.getElementById('appContainer').classList.remove('blurred');
+  
   const roleName = currentRole === 'admin' ? 'ADMIN' : 'QLTP';
-  document.getElementById('headerUserName').textContent = `${currentUser.code} - ${currentUser.name} (${roleName})`;
-  document.getElementById('roleStatusText').textContent = `Phân hệ: ${roleName}`;
+  document.getElementById('headerUserName').textContent = `${currentUser.code} - ${currentUser.name}`;
+  document.getElementById('roleStatusText').textContent = `Tài khoản: ${roleName}`;
   
   document.getElementById('btnAdminMaster').classList.toggle('hidden', currentRole !== 'admin');
+  document.getElementById('btnTaoMoi').classList.toggle('hidden', currentRole === 'admin'); // Admin ko tạo đơn
   
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('filterTuNgay').value = today; document.getElementById('filterDenNgay').value = today;
+  updateDatalists();
   loadTable();
 }
 
@@ -578,333 +350,212 @@ function logout() {
   currentUser = null; currentRole = null;
   document.getElementById('appContainer').classList.add('blurred');
   document.getElementById('loginOverlay').classList.remove('hidden');
-  document.getElementById('loginPassAdmin').value = ''; document.getElementById('loginCodeQLTP').value = '';
+  document.getElementById('loginPassAdmin').value = ''; document.getElementById('loginCode').value = ''; document.getElementById('loginPassQLTP').value = '';
+}
+
+// Cập nhật Datalist HTML5 cho chuẩn Mã - Tên
+function updateDatalists() {
+  document.getElementById('listDataST').innerHTML = (DB.get('sieuthi')||[]).map(s => `<option value="${s.code} - ${s.name}">`).join('');
+  document.getElementById('listDataSP').innerHTML = (DB.get('sanpham')||[]).map(s => `<option value="${s.code} - ${s.name}">`).join('');
 }
 
 // ============================================================
-// TABLE & RENDER (HIỂN THỊ MÃ - TÊN)
+// TABLE (HIỂN THỊ DỮ LIỆU)
 // ============================================================
 function loadTable() {
   let all = DB.get('declarations') || [];
+  // QLTP chỉ thấy bài của mình
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
-
-  const fST = document.getElementById('filterSieuthi').value.toLowerCase();
-  const fFr = document.getElementById('filterTuNgay').value;
-  const fTo = document.getElementById('filterDenNgay').value;
-
-  filteredDeclarations = all.filter(d => {
-    const chuoiTimKiem = ((d.sieuthiCode||'') + ' ' + (d.sieuthiName||'')).toLowerCase();
-    if (fST && !chuoiTimKiem.includes(fST)) return false;
-    if (fFr && d.ngay < fFr) return false;
-    if (fTo && d.ngay > fTo) return false;
-    return true; 
-  });
   
-  document.getElementById('totalCount').textContent = `Tổng: ${filteredDeclarations.length} bản ghi`;
-  renderTable();
-}
-
-function renderTable() {
   const tbody = document.getElementById('tableBody');
-  if (!filteredDeclarations.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:#999;">Không có dữ liệu</td></tr>`; return; }
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">Chưa có dữ liệu khai báo</td></tr>`; return; }
 
-  tbody.innerHTML = filteredDeclarations.map((d, i) => {
-    const checked = selectedIds.has(d.id) ? 'checked' : '';
-    const stTag = d.isManualSieuthi ? `⚠ ${d.sieuthiName}` : `${d.sieuthiCode} - ${d.sieuthiName}`;
-    const spHtml = (d.sanphams||[]).map(sp => sp.isManual ? `⚠ ${sp.name}` : `${sp.code} - ${sp.name}`).join('<br>');
-    const nvHtml = (d.nhanvienList||[]).map(n => n.isManual ? `⚠ ${n.name}` : `${n.code} - ${n.name}`).join('<br>');
+  tbody.innerHTML = all.map((d, i) => {
+    // Render list Sản phẩm (Mã - Tên)
+    const spHtml = (d.sanphams||[]).map(sp => `• ${sp.code} - ${sp.name}`).join('<br>');
+    // Render list Nhân viên (Mã - Tên)
+    const nvHtml = (d.nhanvienList||[]).map(nv => `• ${nv.code} - ${nv.name}`).join('<br>');
     
-    let acts = `<button class="btn btn-sm btn-primary" onclick="openEditModal('${d.id}')">✏ Sửa</button> <button class="btn btn-sm btn-danger" onclick="deleteRecord('${d.id}')">🗑 Xóa</button>`;
+    // Ngày giờ
+    let fDate = d.ngay.split('-').reverse().join('/');
+    let timeStr = `${fDate}<br><span style="color:#888;">${d.tuGio} - ${d.denGio}</span>`;
+    
+    let acts = '';
+    if (currentRole === 'admin' || d.authorCode === currentUser.code) {
+      acts = `<button class="btn btn-primary btn-sm" onclick="openEditModal('${d.id}')">✏ Sửa</button> 
+              <button class="btn btn-danger btn-sm" onclick="deleteRecord('${d.id}')">🗑</button>`;
+    }
 
     return `<tr>
-      <td style="text-align:center;"><input type="checkbox" ${checked} onchange="toggleSelect('${d.id}')"></td>
       <td style="color:#999;">${i+1}</td>
       <td style="font-weight:600;color:var(--green);">${d.authorCode} - ${d.authorName}</td>
-      <td>${stTag}</td>
-      <td style="font-weight:bold;color:var(--blue);">${fDate(d.ngay)}</td>
-      <td>${d.tuGio}</td><td>${d.denGio}</td>
-      <td style="font-size:12px;">${spHtml}</td>
-      <td style="font-size:12px;">${nvHtml}</td>
-      <td style="white-space:nowrap;">${acts}</td>
+      <td style="font-weight:600;">${d.sieuthiCode} - ${d.sieuthiName}</td>
+      <td>${timeStr}</td>
+      <td>${spHtml}</td>
+      <td>${nvHtml}</td>
+      <td>${acts}</td>
     </tr>`;
   }).join('');
 }
 
-// CHECKBOX
-function toggleSelectAll() { const c = document.getElementById('selectAll').checked; document.querySelectorAll('#tableBody input[type=checkbox]').forEach(cb=>{cb.checked=c; let id=cb.getAttribute('onchange').match(/'([^']+)'/)[1]; c?selectedIds.add(id):selectedIds.delete(id);}); updateSelectedCount(); }
-function toggleSelect(id) { selectedIds.has(id) ? selectedIds.delete(id) : selectedIds.add(id); updateSelectedCount(); }
-function updateSelectedCount() { document.getElementById('selectedCount').textContent = selectedIds.size>0?`(${selectedIds.size})`:''; document.getElementById('btnBulkDelete').classList.toggle('hidden', selectedIds.size===0); }
-async function bulkDeleteRecords() { if(!confirm(`Xóa vĩnh viễn ${selectedIds.size} đơn?`)) return; let d = DB.get('declarations')||[]; await DB.set('declarations', d.filter(x=>!selectedIds.has(x.id))); selectedIds.clear(); updateSelectedCount(); loadTable(); toast('success','Đã xóa'); }
-async function deleteRecord(id) { if(!confirm('Xóa bản ghi này?')) return; let d = DB.get('declarations')||[]; await DB.set('declarations', d.filter(x=>x.id!==id)); loadTable(); toast('success','Đã xóa'); }
+async function deleteRecord(id) {
+  if (!confirm('Xóa bản ghi này?')) return;
+  let d = DB.get('declarations') || [];
+  await DB.set('declarations', d.filter(x => x.id !== id));
+  toast('success', 'Đã xóa!'); loadTable();
+}
 
 // ============================================================
-// DROPDOWN SEARCH & MULTI-ITEM ARRAY LOGIC
-// ============================================================
-function filterDrop(field, query) {
-  const q = String(query).toLowerCase().trim(); let items = [];
-  if (field === 'filterST' || field === 'sieuthi') {
-    let all = DB.get('sieuthi') || [];
-    if (currentRole === 'qltp') all = all.filter(s => s.qltpCode === currentUser.code);
-    items = all.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q)).slice(0, 20);
-  } else if (field === 'sanpham' || field === 'nhanvien') {
-    let all = DB.get(field) || [];
-    items = all.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q)).slice(0, 20);
-  }
-
-  const listEl = document.getElementById(field==='filterST'?'dropFilterst-list':`drop${cap(field)}-list`);
-  let html = items.map(it => {
-    const safeObj = JSON.stringify(it).replace(/"/g,'&quot;');
-    return `<div class="dropdown-item" onmousedown="selectDropItem('${field}', ${safeObj})"><span>${it.code} - ${it.name}</span></div>`;
-  }).join('');
-
-  if (q) html += `<div class="dropdown-item-manual" onmousedown="selectManualItem('${field}','${query.replace(/'/g,"\\'")}')">✍ Nhập tay: "${query}"</div>`;
-  listEl.innerHTML = html || '<div style="padding:10px;color:#999;">Không có kết quả</div>';
-  listEl.classList.remove('hidden');
-}
-
-function selectDropItem(field, item) {
-  if (field === 'filterST') { document.getElementById('filterSieuthi').value = `${item.code} - ${item.name}`; document.getElementById('dropFilterst-list').classList.add('hidden'); loadTable(); return; }
-  document.getElementById(`input${cap(field)}`).value = '';
-  // Multi items
-  if (field === 'sanpham' || field === 'nhanvien') {
-    let arr = field === 'sanpham' ? dropSel.sanphams : dropSel.nhanvien;
-    if (!arr.find(n => n.id === item.id)) arr.push({ ...item, isManual: false });
-  } else {
-    dropSel[field] = { ...item, isManual: false }; document.getElementById(`input${cap(field)}`).value = `${item.code} - ${item.name}`;
-  }
-  renderTags(field); document.getElementById(`drop${cap(field)}-list`).classList.add('hidden');
-}
-
-function selectManualItem(field, txt) {
-  if (!txt.trim()) return;
-  if (field === 'filterST') { document.getElementById('filterSieuthi').value = txt; document.getElementById('dropFilterst-list').classList.add('hidden'); loadTable(); return; }
-  document.getElementById(`input${cap(field)}`).value = '';
-  if (field === 'sanpham' || field === 'nhanvien') {
-    let arr = field === 'sanpham' ? dropSel.sanphams : dropSel.nhanvien;
-    arr.push({ id: null, code: '', name: txt, isManual: true });
-  } else {
-    dropSel[field] = { id: null, code: '', name: txt, isManual: true }; document.getElementById(`input${cap(field)}`).value = txt;
-  }
-  renderTags(field); document.getElementById(`drop${cap(field)}-list`).classList.add('hidden');
-}
-
-function removeTag(field, idx) {
-  if (field === 'sanpham') dropSel.sanphams.splice(idx, 1);
-  else if (field === 'nhanvien') dropSel.nhanvien.splice(idx, 1);
-  else { dropSel[field] = null; document.getElementById(`input${cap(field)}`).value = ''; }
-  renderTags(field);
-}
-
-function renderTags(field) {
-  const cont = document.getElementById(`${field}Selected`);
-  if (field === 'sanpham' || field === 'nhanvien') {
-    let arr = field === 'sanpham' ? dropSel.sanphams : dropSel.nhanvien;
-    cont.innerHTML = arr.map((n, i) => `<span class="tag-item ${n.isManual?'manual':''}">${n.isManual?'⚠':''} ${n.code?n.code+' - ':''}${n.name} <span class="remove" onmousedown="removeTag('${field}',${i})">×</span></span>`).join('');
-  } else {
-    const sel = dropSel[field];
-    cont.innerHTML = sel ? `<span class="tag-item ${sel.isManual?'manual':''}">${sel.isManual?'⚠':''} ${sel.code?sel.code+' - ':''}${sel.name} <span class="remove" onmousedown="removeTag('${field}')">×</span></span>` : '';
-  }
-}
-
-document.addEventListener('click', e => { document.querySelectorAll('.dropdown-list').forEach(l => { if(!l.parentElement.contains(e.target)) l.classList.add('hidden'); }); });
-
-// ============================================================
-// TẠO/SỬA KHAI BÁO
+// CREATE/EDIT FORM (MULTI-PRODUCT & TAGS)
 // ============================================================
 function openCreateModal() {
-  currentEditId = null; dropSel = { sieuthi: null, sanphams: [], nhanvien: [] };
-  ['Sieuthi','Sanpham','Nhanvien'].forEach(f => { document.getElementById(`input${f}`).value = ''; document.getElementById(`${f.toLowerCase()}Selected`).innerHTML = ''; document.getElementById(`drop${f}-list`).classList.add('hidden'); });
-  document.getElementById('formNgay').value = ''; document.getElementById('formTuGio').value = ''; document.getElementById('formDenGio').value = '';
-  document.getElementById('createModalTitle').textContent = '➕ Tạo Khai báo'; showModal('createModal');
+  currentEditId = null; nhanvienTags = [];
+  document.getElementById('inputSieuthi').value = '';
+  document.getElementById('formNgay').value = '';
+  document.getElementById('formTuGio').value = '';
+  document.getElementById('formDenGio').value = '';
+  document.getElementById('productRowsContainer').innerHTML = '';
+  addProductRow(); // Add 1 row mặc định
+  renderNVTags();
+  document.getElementById('createModalTitle').textContent = '➕ Khai báo Biệt Kích';
+  showModal('createModal');
 }
 
 function openEditModal(id) {
-  const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return; currentEditId = id;
-  dropSel.sieuthi = { id: d.sieuthiId, code: d.sieuthiCode||'', name: d.sieuthiName, isManual: d.isManualSieuthi };
-  dropSel.sanphams = [...(d.sanphams||[])];
-  dropSel.nhanvien = [...(d.nhanvienList||[])];
-  document.getElementById('inputSieuthi').value = d.isManualSieuthi ? d.sieuthiName : `${d.sieuthiCode} - ${d.sieuthiName}`;
-  document.getElementById('inputSanpham').value = ''; document.getElementById('inputNhanvien').value = '';
-  document.getElementById('formNgay').value = d.ngay; document.getElementById('formTuGio').value = d.tuGio; document.getElementById('formDenGio').value = d.denGio;
-  ['sieuthi','sanpham','nhanvien'].forEach(f => renderTags(f));
-  document.getElementById('createModalTitle').textContent = '✏ Sửa Khai báo'; showModal('createModal');
+  const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return;
+  currentEditId = id; nhanvienTags = [...(d.nhanvienList||[])];
+  document.getElementById('inputSieuthi').value = `${d.sieuthiCode} - ${d.sieuthiName}`;
+  document.getElementById('formNgay').value = d.ngay;
+  document.getElementById('formTuGio').value = d.tuGio;
+  document.getElementById('formDenGio').value = d.denGio;
+  
+  // Render Multi-products
+  const pCont = document.getElementById('productRowsContainer');
+  pCont.innerHTML = '';
+  if(d.sanphams && d.sanphams.length > 0) {
+    d.sanphams.forEach(sp => addProductRow(`${sp.code} - ${sp.name}`));
+  } else { addProductRow(); }
+  
+  renderNVTags();
+  document.getElementById('createModalTitle').textContent = '✏ Sửa Khai báo';
+  showModal('createModal');
 }
 
-async function submitForm() {
-  const st = dropSel.sieuthi, sps = dropSel.sanphams, nv = dropSel.nhanvien, ngay = document.getElementById('formNgay').value, tG = document.getElementById('formTuGio').value, dG = document.getElementById('formDenGio').value;
-  if (!st) return toast('error', 'Chọn Siêu thị!'); if (sps.length === 0) return toast('error', 'Chọn ít nhất 1 Sản phẩm!'); if (!ngay) return toast('error', 'Chọn Ngày!'); if (!tG || !dG) return toast('error', 'Chọn Giờ!'); if (nv.length === 0) return toast('error', 'Chọn ít nhất 1 NV!');
+// LOGIC MULTI SẢN PHẨM
+function addProductRow(val = '') {
+  const cont = document.getElementById('productRowsContainer');
+  const div = document.createElement('div');
+  div.className = 'product-row';
+  div.innerHTML = `
+    <input type="text" class="form-control sp-input" list="listDataSP" placeholder="Gõ chọn Mã - Tên SP..." value="${val}">
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">🗑</button>
+  `;
+  cont.appendChild(div);
+}
+
+// LOGIC TÌM KIẾM NHÂN VIÊN LÀM TAG (Do NV quá nhiều không nên xài Datalist HTML5 bị lag)
+function filterNV(query) {
+  const q = query.toLowerCase().trim();
+  const listEl = document.getElementById('dropNhanvien-list');
+  if(!q) { listEl.classList.add('hidden'); return; }
   
-  let d = DB.get('declarations') || [];
+  const allNV = DB.get('nhanvien') || [];
+  const filtered = allNV.filter(n => String(n.name).toLowerCase().includes(q) || String(n.code).toLowerCase().includes(q)).slice(0, 10);
+  
+  if(filtered.length === 0) { listEl.innerHTML = '<div style="padding:10px;color:#888;">Không tìm thấy</div>'; }
+  else {
+    listEl.innerHTML = filtered.map(n => `<div class="dropdown-item" onmousedown="selectNV('${n.code}','${n.name}')"><span>${n.code} - ${n.name}</span></div>`).join('');
+  }
+  listEl.classList.remove('hidden');
+}
+
+function selectNV(code, name) {
+  if(!nhanvienTags.find(x => x.code === code)) { nhanvienTags.push({code, name}); }
+  document.getElementById('inputNhanvien').value = '';
+  document.getElementById('dropNhanvien-list').classList.add('hidden');
+  renderNVTags();
+}
+
+function renderNVTags() {
+  document.getElementById('nhanvienSelected').innerHTML = nhanvienTags.map((n, i) => 
+    `<span class="tag-item">${n.code} - ${n.name} <span class="remove" onclick="nhanvienTags.splice(${i},1);renderNVTags()">×</span></span>`
+  ).join('');
+}
+
+// SUBMIT DATA
+async function submitForm() {
+  // Lấy data Siêu thị
+  const stRaw = document.getElementById('inputSieuthi').value;
+  if (!stRaw || !stRaw.includes(' - ')) return toast('error', 'Chọn đúng định dạng Mã - Tên Siêu thị!');
+  const stParts = stRaw.split(' - ');
+  const stCode = stParts[0].trim(); const stName = stParts[1].trim();
+
+  // Lấy data Ngày Giờ
+  const ngay = document.getElementById('formNgay').value;
+  const tG = document.getElementById('formTuGio').value;
+  const dG = document.getElementById('formDenGio').value;
+  if (!ngay || !tG || !dG) return toast('error', 'Điền đủ Ngày và Giờ (24h)!');
+
+  // Lấy danh sách Mảng Sản Phẩm
+  const spInputs = document.querySelectorAll('.sp-input');
+  let sanphams = [];
+  for (let inp of spInputs) {
+    let val = inp.value.trim();
+    if(val && val.includes(' - ')) {
+      let p = val.split(' - ');
+      sanphams.push({ code: p[0].trim(), name: p[1].trim() });
+    }
+  }
+  if (sanphams.length === 0) return toast('error', 'Cần chọn ít nhất 1 Sản phẩm đúng chuẩn Mã - Tên!');
+
+  // Lấy danh sách Mảng Nhân viên
+  if (nhanvienTags.length === 0) return toast('error', 'Cần chọn ít nhất 1 Nhân viên!');
+
+  let decls = DB.get('declarations') || [];
   if (currentEditId) {
-    let idx = d.findIndex(x => x.id === currentEditId);
-    d[idx] = { ...d[idx], sieuthiId: st.id, sieuthiCode: st.code, sieuthiName: st.name, isManualSieuthi: st.isManual, sanphams: sps, nhanvienList: nv, ngay, tuGio: tG, denGio: dG };
-    await DB.set('declarations', d); toast('success', 'Đã cập nhật!');
+    let idx = decls.findIndex(x => x.id === currentEditId);
+    decls[idx] = { ...decls[idx], sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: nhanvienTags };
+    await DB.set('declarations', decls); toast('success', 'Đã lưu thay đổi!');
   } else {
-    d.unshift({ id: 'BK' + Date.now().toString().slice(-6), authorCode: currentUser.code, authorName: currentUser.name, sieuthiId: st.id, sieuthiCode: st.code, sieuthiName: st.name, isManualSieuthi: st.isManual, ngay, tuGio: tG, denGio: dG, sanphams: sps, nhanvienList: nv, createdAt: new Date().toISOString() });
-    await DB.set('declarations', d); toast('success', 'Đã tạo!');
+    decls.unshift({ id: 'BK' + Date.now().toString().slice(-6), authorCode: currentUser.code, authorName: currentUser.name, sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: nhanvienTags, createdAt: new Date().toISOString() });
+    await DB.set('declarations', decls); toast('success', 'Đã tạo thành công!');
   }
   closeModal('createModal'); loadTable();
 }
 
 // ============================================================
-// EXPORT EXCEL
+// ADMIN QUẢN LÝ MASTER DATA (USERS)
 // ============================================================
-function exportExcel() {
-  const data = filteredDeclarations.map(d => [d.id, d.authorCode + ' - ' + d.authorName, d.sieuthiCode + ' - ' + d.sieuthiName, fDate(d.ngay), d.tuGio, d.denGio, (d.sanphams||[]).map(s=>s.code+' - '+s.name).join('; '), (d.nhanvienList||[]).map(n=>n.code+' - '+n.name).join('; '), fDate(d.createdAt)]);
-  const ws = XLSX.utils.aoa_to_sheet([['Mã Đơn','Người tạo','Siêu thị','Ngày','Từ giờ','Đến giờ','Danh sách SP','DS Nhân Viên','Ngày tạo'], ...data]);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KhaiBao"); XLSX.writeFile(wb, `BietKich_${new Date().toISOString().split('T')[0]}.xlsx`);
+function openAdminModal() { renderAdminUsers(); showModal('adminModal'); }
+function renderAdminUsers() {
+  const users = DB.get('users') || [];
+  document.getElementById('masterUsersList').innerHTML = users.map(u => 
+    `<tr>
+      <td style="padding:8px;">${u.code}</td><td style="padding:8px;">${u.name}</td>
+      <td style="padding:8px;color:#888;">${u.pass}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteAdminUser('${u.code}')">Xóa</button></td>
+    </tr>`
+  ).join('');
 }
-
-// ============================================================
-// IMPORT MASTER DATA CAO CẤP (PHỤC HỒI TỪ HÌNH ẢNH)
-// ============================================================
-function updateStatChips() {
-  const st = DB.get('sieuthi') || []; const sp = DB.get('sanpham') || []; const nv = DB.get('nhanvien') || []; const ql = DB.get('qltpList') || [];
-  if(document.getElementById('statQLTP')) document.getElementById('statQLTP').textContent = `QLTP: ${ql.length}`;
-  if(document.getElementById('statST')) document.getElementById('statST').textContent = `Siêu thị: ${st.length}`;
-  if(document.getElementById('statFMCG')) document.getElementById('statFMCG').textContent = `SP FMCG: ${sp.filter(x=>x.type==='fmcg').length}`;
-  if(document.getElementById('statFresh')) document.getElementById('statFresh').textContent = `SP Fresh: ${sp.filter(x=>x.type==='fresh').length}`;
-  if(document.getElementById('statNV')) document.getElementById('statNV').textContent = `NV: ${nv.length}`;
-  if(document.getElementById('countSieuthi')) document.getElementById('countSieuthi').textContent = st.length;
-  if(document.getElementById('countSanpham')) document.getElementById('countSanpham').textContent = sp.length;
-  if(document.getElementById('countNhanvien')) document.getElementById('countNhanvien').textContent = nv.length;
-  if(document.getElementById('countUsers')) document.getElementById('countUsers').textContent = ql.length;
-}
-
-async function importMasterFile(type, input) {
-  const file = input.files[0]; if (!file) return;
-  const statusEl = document.getElementById('status' + (type==='phanbo'?'PhanBo':type==='fmcg'?'FMCG':type==='fresh'?'Fresh':'NV'));
-  if (statusEl) statusEl.textContent = '⏳ Đang đọc file và đẩy lên Cloud...';
-  
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    try {
-      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
-      
-      if (type === 'phanbo') await parsePhanBo(rows);
-      else if (type === 'fmcg') await parseSanPham(rows, 'fmcg');
-      else if (type === 'fresh') await parseSanPham(rows, 'fresh');
-      else if (type === 'nhanvien') await parseNhanVien(rows);
-      
-      updateStatChips();
-      if (statusEl) statusEl.textContent = '✅ Đã đồng bộ lên Cloud thành công!';
-      input.value = '';
-    } catch(err) {
-      if (statusEl) statusEl.textContent = '❌ Lỗi: ' + err.message;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-async function parsePhanBo(rows) {
-  let headerIdx = 0;
-  for (let i = 0; i < Math.min(5, rows.length); i++) { if (rows[i].some(c => String(c).toUpperCase().includes('MST'))) { headerIdx = i; break; } }
-  const headers = rows[headerIdx].map(h => String(h).trim());
-  const idxMST = headers.findIndex(h => h.toUpperCase() === 'MST' || h.includes('MST'));
-  const idxTenST = headers.findIndex(h => h.includes('Tên ST') || h.includes('TEN ST'));
-  const idxQLTP = headers.findIndex(h => h.includes('tên rút gọn') || h.includes('rút gọn'));
-  
-  let sieuthi = [], qltpMap = {};
-  for (let i = headerIdx + 1; i < rows.length; i++) {
-    const r = rows[i]; const mst = String(r[idxMST] || '').trim(); const tenST = String(r[idxTenST] || '').trim(); const qltpRaw = String(r[idxQLTP] || '').trim();
-    if (!mst || !tenST) continue;
-    let qltpCode = '', qltpName = '';
-    const dashIdx = qltpRaw.indexOf(' - ');
-    if (dashIdx > 0) { qltpCode = qltpRaw.substring(0, dashIdx).trim(); qltpName = qltpRaw.substring(dashIdx + 3).trim(); } else { qltpCode = qltpRaw; }
-    sieuthi.push({ id: mst, code: mst, name: tenST, qltpCode, qltpName });
-    if (qltpCode && !qltpMap[qltpCode]) qltpMap[qltpCode] = { code: qltpCode, name: qltpName, pass: '1' };
-  }
-  await DB.set('sieuthi', sieuthi);
-  await DB.set('qltpList', Object.values(qltpMap));
-}
-
-async function parseSanPham(rows, type) {
-  let headerIdx = 0;
-  for (let i = 0; i < Math.min(5, rows.length); i++) { if (rows[i].some(c => String(c).toLowerCase().includes('mã'))) { headerIdx = i; break; } }
-  const headers = rows[headerIdx].map(h => String(h).trim().toLowerCase());
-  const idxMa = headers.findIndex(h => h.includes('mã'));
-  const idxTen = headers.findIndex(h => h.includes('tên') && !h.includes('tắt'));
-  
-  let existing = (DB.get('sanpham') || []).filter(s => s.type !== type);
-  let newItems = [], seen = new Set(existing.map(s => s.code));
-  for (let i = headerIdx + 1; i < rows.length; i++) {
-    const r = rows[i]; const ma = String(r[idxMa] || '').trim(); const ten = String(r[idxTen] || '').trim();
-    if (!ma || !ten || seen.has(ma)) continue;
-    seen.add(ma); newItems.push({ id: ma, code: ma, name: ten, type });
-  }
-  await DB.set('sanpham', [...existing, ...newItems]);
-}
-
-async function parseNhanVien(rows) {
-  let headerIdx = 0;
-  for (let i = 0; i < Math.min(6, rows.length); i++) { if (rows[i].some(c => String(c).toLowerCase().includes('mã nhân viên'))) { headerIdx = i; break; } }
-  const headers = rows[headerIdx].map(h => String(h).trim().toLowerCase());
-  const idxMa = headers.findIndex(h => h.includes('mã nhân viên'));
-  const idxTen = headers.findIndex(h => h.includes('tên nhân viên'));
-  const idxST = headers.findIndex(h => h.includes('mã siêu thị'));
-  
-  let items = [], seen = new Set();
-  for (let i = headerIdx + 1; i < rows.length; i++) {
-    const r = rows[i]; const ma = String(r[idxMa] || '').trim(); const ten = String(r[idxTen] || '').trim(); const st = idxST >= 0 ? String(r[idxST] || '').trim() : '';
-    if (!ma || !ten || seen.has(ma)) continue;
-    seen.add(ma); items.push({ id: ma, code: ma, name: ten, sieuthiCode: st });
-  }
-  await DB.set('nhanvien', items);
-}
-
-function dlMasterTpl(type) {
-  let d, name;
-  if(type === 'phanbo') { d = [['MST', 'Tên ST', 'QLTP tháng 4.2026 (tên rút gọn)', 'Cụm miền', 'Tỉnh/thành'], ['12345', 'BHX_HCM_001', '27506 - Bá Thành', 'HCM', 'Hồ Chí Minh']]; name = "Template_PhanBo.xlsx"; }
-  else if(type === 'fmcg') { d = [['Mã sản phẩm', 'Tên sản phẩm', 'Nhóm hàng'], ['1053090000397', 'BÁNH DD AFC VỊ LÚA MÌ', 'Bánh kẹo']]; name = "Template_FMCG.xlsx"; }
-  else if(type === 'fresh') { d = [['Mã sản phẩm', 'Tên sản phẩm', 'Tên viết tắt'], ['2000000001234', 'THỊT HEO BA RỌI', 'HEO BA RỌI']]; name = "Template_Fresh.xlsx"; }
-  else if(type === 'nhanvien') { d = [['Mã Nhân Viên', 'Tên Nhân Viên', 'Mã Siêu Thị'], ['268789', 'Nguyễn Hải Phú', '12345']]; name = "Template_NhanVien.xlsx"; }
-  try {
-    const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, name, { bookType: 'xlsx', type: 'binary' });
-  } catch (err) {}
-}
-
-// ============================================================
-// ADMIN: QUẢN LÝ MASTER DATA TAB
-// ============================================================
-function openMasterDataModal() { updateStatChips(); switchMasterTab('importData'); showModal('masterDataModal'); }
-function switchMasterTab(t) {
-  ['importData','users','sieuthi','sanpham','nhanvien'].forEach(x => { const el = document.getElementById(`masterTab${cap(x)}`); if (el) el.classList.remove('active'); });
-  document.querySelectorAll('#masterDataModal .tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`masterTab${cap(t)}`).classList.add('active');
-  document.querySelector(`#masterDataModal .tab-btn[onclick*='${t}']`).classList.add('active');
-  if (t !== 'importData') renderMasterList(t);
-}
-
-function renderMasterList(type) {
-  const el = document.getElementById(`master${cap(type)}List`); if (!el) return;
-  const q = (document.getElementById(`search${cap(type)}`)?.value || '').toLowerCase().trim();
-  const items = DB.get(type==='users'?'qltpList':type) || [];
-  let filtered = items.filter(s => !q || String(s.code).toLowerCase().includes(q) || String(s.name).toLowerCase().includes(q)).slice(0, 100);
-
-  let h = `<table style="width:100%;text-align:left;font-size:12px;"><thead><tr style="background:#eee;"><th style="padding:6px;">Mã</th><th style="padding:6px;">Tên</th>${type==='sieuthi'?'<th style="padding:6px;">Mã QLTP</th>':''}<th></th></tr></thead><tbody>` + 
-          filtered.map(i=>`<tr><td style="padding:6px;">${i.code}</td><td style="padding:6px;">${i.name}</td>${type==='sieuthi'?`<td style="padding:6px;">${i.qltpCode||''}</td>`:''}<td><button class="btn btn-sm btn-danger" onclick="delMaster('${type}','${i.code||i.id}')">Xóa</button></td></tr>`).join('') + `</tbody></table>`;
-  el.innerHTML = items.length ? h : '<p>Trống</p>';
-}
-
 async function addMasterUser() {
-  const c = document.getElementById('newQltpCode').value.trim().toUpperCase(); const n = document.getElementById('newQltpName').value.trim();
-  if(!c||!n) return toast('error','Nhập đủ!');
-  let list = DB.get('qltpList')||[]; if(list.find(x=>x.code===c)) return toast('error','Mã đã tồn tại!');
-  list.push({ code: c, name: n, pass: '1' }); await DB.set('qltpList', list); toast('success','Thành công!'); renderMasterList('users'); updateStatChips();
+  const c = document.getElementById('newQltpCode').value.trim().toUpperCase();
+  const n = document.getElementById('newQltpName').value.trim();
+  if(!c || !n) return toast('error', 'Nhập đủ mã và tên!');
+  let users = DB.get('users') || [];
+  if(users.find(x => x.code === c)) return toast('error', 'Mã QLTP đã tồn tại!');
+  users.push({ code: c, name: n, pass: '1' });
+  await DB.set('users', users); toast('success', 'Thêm thành công!');
+  document.getElementById('newQltpCode').value = ''; document.getElementById('newQltpName').value = '';
+  renderAdminUsers();
+}
+async function deleteAdminUser(code) {
+  if(!confirm('Xóa tài khoản QLTP này?')) return;
+  let users = DB.get('users') || [];
+  await DB.set('users', users.filter(u => u.code !== code)); renderAdminUsers();
 }
 
-async function addMasterItem(type) {
-  const c = document.getElementById(`new${cap(type)}Code`).value.trim().toUpperCase(); const n = document.getElementById(`new${cap(type)}Name`).value.trim();
-  if(!c||!n) return toast('error','Nhập đủ!');
-  let items = DB.get(type)||[]; if(items.find(x=>x.code===c)) return toast('error','Trùng mã!');
-  let obj = {id:c, code:c, name:n};
-  if(type==='sieuthi') obj.qltpCode = document.getElementById('newSieuthiQLTP').value.trim();
-  items.push(obj); await DB.set(type, items); toast('success','Đã thêm'); renderMasterList(type); updateStatChips();
-}
-
-async function delMaster(type, code) { if(!confirm('Xóa?')) return; let key=type==='users'?'qltpList':type; await DB.set(key, (DB.get(key)||[]).filter(x=>x.code!==code && x.id!==code)); renderMasterList(type); updateStatChips(); }
+// Đóng drop khi click ngoài
+document.addEventListener('click', e => { if(!e.target.closest('#dropNhanvien')) document.getElementById('dropNhanvien-list').classList.add('hidden'); });
 </script>
 </body>
 </html>
