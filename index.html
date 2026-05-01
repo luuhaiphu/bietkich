@@ -13,6 +13,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
   body { font-size: 13px; color: var(--text); background: #f0f0f0; overflow-x: hidden; }
 
+  /* MÀN HÌNH LOADING & MỜ */
   #appContainer { display: flex; flex-direction: column; min-height: 100vh; transition: filter 0.3s; }
   #appContainer.blurred { filter: blur(8px); pointer-events: none; user-select: none; height: 100vh; overflow: hidden; }
   #globalLoader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
@@ -37,18 +38,26 @@
   /* HEADER & LAYOUT */
   .header { background: var(--green); color: white; display: flex; align-items: center; height: 50px; padding: 0 16px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   .header-title { font-weight: bold; font-size: 16px; margin-right: auto; }
+  .header-user { background: rgba(255,255,255,0.15); border-radius: 6px; padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .role-bar { background: #e3f2fd; border-bottom: 2px solid var(--blue); padding: 8px 16px; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: #084298; }
   .main { padding: 16px; flex: 1; }
+
+  /* FILTER AREA */
+  .filter-area { background: white; padding: 12px 16px; border-radius: var(--radius); margin-bottom: 15px; box-shadow: var(--shadow); }
+  .filter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
 
   /* TABLE & ACTION BAR */
   .action-bar { display:flex; gap:10px; margin-bottom:15px; background:white; padding:12px; border-radius:var(--radius); box-shadow:var(--shadow); }
   .table-area { background: white; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
-  .table-container { overflow-x: auto; max-height: calc(100vh - 250px); overflow-y: auto; }
+  .table-container { overflow-x: auto; max-height: calc(100vh - 280px); overflow-y: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th { background: var(--green); color: white; padding: 10px; text-align: left; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
   tbody tr { border-bottom: 1px solid #eee; }
   tbody tr:hover { background: #f8fff9; }
   tbody td { padding: 10px; vertical-align: top; }
+  
+  .select-all-row { padding: 8px 16px; background: #f8f9fa; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 12px; }
 
   /* TAGS & SEARCH DROPDOWN */
   .search-drop-wrap { position: relative; width: 100%; }
@@ -78,7 +87,7 @@
   /* TOAST */
   .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
   .toast { padding: 12px 20px; border-radius: 6px; color: white; font-weight: 600; box-shadow: var(--shadow); animation: slideIn 0.3s; }
-  .toast.success { background: var(--green); } .toast.error { background: var(--red); }
+  .toast.success { background: var(--green); } .toast.error { background: var(--red); } .toast.warning { background: var(--orange); }
   @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
   .hidden { display: none !important; }
 </style>
@@ -105,13 +114,7 @@
     </div>
     
     <div id="grpQLTP">
-      <div class="form-group">
-        <label>Mã QLTP</label>
-        <div class="search-drop-wrap">
-          <input type="text" id="loginCode" class="form-control search-drop-input" placeholder="Gõ Mã QLTP..." oninput="filterLoginDrop(this.value)" autocomplete="off">
-          <div class="dropdown-list hidden" id="loginDrop-list"></div>
-        </div>
-      </div>
+      <div class="form-group"><label>Mã QLTP</label><input type="text" id="loginCodeQLTP" class="form-control" placeholder="Gõ Mã QLTP..." onkeydown="if(event.key==='Enter') handleLogin()"></div>
       <div class="form-group"><label>Mật khẩu</label><input type="password" id="loginPassQLTP" class="form-control" placeholder="Mật khẩu" onkeydown="if(event.key==='Enter') handleLogin()"></div>
     </div>
     
@@ -122,21 +125,28 @@
   </div>
 </div>
 
+<!-- ĐỔI MẬT KHẨU BẮT BUỘC -->
 <div class="modal-overlay hidden" id="forcePassModal">
   <div class="modal" style="width:400px;">
     <div class="modal-header"><h3>🔑 Đổi mật khẩu bắt buộc</h3></div>
     <div class="modal-body">
-      <p style="color:#e65100; font-size:12px; margin-bottom:15px;">Bạn đang dùng mật khẩu mặc định. Vui lòng đổi mật khẩu mới để bảo mật.</p>
+      <p style="color:#e65100; font-size:12px; margin-bottom:15px;">Bạn đang dùng mật khẩu mặc định (1). Vui lòng đổi mật khẩu mới để bảo mật tài khoản.</p>
       <div class="form-group"><label>Mật khẩu mới</label><input type="password" id="newPass" class="form-control"></div>
     </div>
     <div class="modal-footer"><button class="btn btn-primary" onclick="submitForcePass()">Lưu & Vào hệ thống</button></div>
   </div>
 </div>
 
-<!-- MAIN -->
+<!-- GIAO DIỆN CHÍNH -->
 <div id="appContainer" class="blurred">
+  
   <div class="header">
     <div class="header-title">🦅 BHX - QUẢN LÝ BIỆT KÍCH</div>
+    <!-- KHU VỰC HIỂN THỊ TÊN USER BỊ THIẾU Ở BẢN TRƯỚC ĐÃ ĐƯỢC THÊM LẠI -->
+    <div class="header-user">
+      <span style="font-size:16px;">👤</span>
+      <span id="headerUserName">...</span>
+    </div>
   </div>
   
   <div class="role-bar">
@@ -145,18 +155,53 @@
   </div>
 
   <div class="main">
-    <div class="action-bar">
-      <button class="btn btn-primary hidden" id="btnTaoMoi" onclick="openCreateModal()">➕ Khai Báo Biệt Kích</button>
-      <div style="margin-left:auto; display:flex; gap:10px;">
-        <button class="btn btn-warning hidden" id="btnAdminMaster" onclick="openAdminModal()">⚙ Quản lý Master Data</button>
+    
+    <!-- KHU VỰC TÌM KIẾM/LỌC (ĐÃ THÊM LẠI) -->
+    <div class="filter-area">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Tìm Siêu thị</label>
+          <div class="search-drop-wrap" style="width: 220px;">
+            <input type="text" id="filterSieuthi" placeholder="Gõ tìm Mã - Tên ST..." class="form-control" autocomplete="off" onfocus="filterDrop('filterST', this.value)" oninput="filterDrop('filterST', this.value)">
+            <div class="dropdown-list hidden" id="dropFilterst-list"></div>
+          </div>
+        </div>
+        <div class="filter-group"><label>Từ ngày</label><input type="date" id="filterTuNgay" class="form-control"></div>
+        <div class="filter-group"><label>Đến ngày</label><input type="date" id="filterDenNgay" class="form-control"></div>
+        <div class="filter-group" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-secondary" onclick="document.getElementById('filterSieuthi').value=''; loadTable();">Xóa lọc</button>
+            <button class="btn btn-success" onclick="loadTable()">🔍 Tìm kiếm</button>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- KHU VỰC NÚT BẤM -->
+    <div class="action-bar">
+      <button class="btn btn-primary hidden" id="btnTaoMoi" onclick="openCreateModal()">➕ Khai Báo Biệt Kích</button>
+      <button class="btn btn-danger hidden" id="btnBulkDelete" onclick="bulkDeleteRecords()">🗑 Xóa đã chọn</button>
+      <button class="btn btn-warning" onclick="exportExcel()">📥 Xuất Excel</button>
+      
+      <div style="margin-left:auto; display:flex; gap:10px;">
+        <button class="btn btn-warning hidden" id="btnAdminMaster" onclick="openAdminModal()">⚙ Quản lý User (QLTP)</button>
+      </div>
+    </div>
+
+    <!-- BẢNG DỮ LIỆU -->
     <div class="table-area">
+      <div class="select-all-row">
+        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+        <label for="selectAll" style="font-weight:bold;">Chọn tất cả trang này</label>
+        <span id="selectedCount" style="color:var(--blue);"></span>
+        <span id="totalCount" style="margin-left:auto; color:#888;"></span>
+      </div>
       <div class="table-container">
-        <table>
+        <table id="mainTable">
           <thead>
             <tr>
+              <th style="width:36px; text-align:center;"></th>
               <th>#</th>
               <th>Người Khai Báo</th>
               <th>Siêu thị</th>
@@ -173,7 +218,7 @@
   </div>
 </div>
 
-<!-- MODAL KHAI BÁO -->
+<!-- MODAL KHAI BÁO (MULTI-PRODUCT) -->
 <div class="modal-overlay hidden" id="createModal">
   <div class="modal">
     <div class="modal-header">
@@ -185,7 +230,11 @@
       
       <div class="form-group">
         <label>Siêu thị <span style="color:red">*</span></label>
-        <input type="text" id="inputSieuthi" class="form-control" list="listDataST" placeholder="Gõ chọn Mã - Tên Siêu thị">
+        <div class="search-drop-wrap">
+          <input type="text" id="inputSieuthi" class="form-control" placeholder="Gõ tìm Siêu thị..." autocomplete="off" oninput="filterDrop('sieuthi', this.value)" onfocus="filterDrop('sieuthi', this.value)">
+          <div class="dropdown-list hidden" id="dropSieuthi-list"></div>
+          <div class="selected-tags" id="sieuthiSelected"></div>
+        </div>
       </div>
 
       <div class="form-row-3">
@@ -195,15 +244,15 @@
       </div>
 
       <div class="form-group" style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid var(--border);">
-        <label>Sản phẩm Biệt kích <span style="color:red">*</span></label>
+        <label>Danh sách Sản phẩm Biệt kích <span style="color:red">*</span></label>
         <div id="productRowsContainer"></div>
         <button class="btn btn-secondary btn-sm" onclick="addProductRow()">➕ Thêm sản phẩm</button>
       </div>
 
       <div class="form-group">
         <label>Nhân viên áp dụng <span style="color:red">*</span></label>
-        <div class="search-drop-wrap" id="dropNhanvien">
-          <input type="text" id="inputNhanvien" class="form-control search-drop-input" placeholder="Gõ tìm Nhân viên..." autocomplete="off" oninput="filterNV(this.value)" onfocus="filterNV(this.value)">
+        <div class="search-drop-wrap">
+          <input type="text" id="inputNhanvien" class="form-control search-drop-input" placeholder="Gõ tìm Nhân viên..." autocomplete="off" oninput="filterDrop('nhanvien', this.value)" onfocus="filterDrop('nhanvien', this.value)">
           <div class="dropdown-list hidden" id="dropNhanvien-list"></div>
           <div class="selected-tags" id="nhanvienSelected"></div>
         </div>
@@ -216,7 +265,7 @@
   </div>
 </div>
 
-<!-- MODAL ADMIN -->
+<!-- MODAL ADMIN QUẢN LÝ -->
 <div class="modal-overlay hidden" id="adminModal">
   <div class="modal">
     <div class="modal-header"><h3>⚙ Quản lý User (QLTP)</h3><button class="modal-close" onclick="closeModal('adminModal')">×</button></div>
@@ -234,9 +283,6 @@
   </div>
 </div>
 
-<datalist id="listDataST"></datalist>
-<datalist id="listDataSP"></datalist>
-
 <script>
 // ============================================================
 // ⚠️ QUAN TRỌNG: COPY LINK WEB APP CỦA BẠN DÁN VÀO ĐÂY:
@@ -245,48 +291,61 @@ const API_URL = "https://script.google.com/macros/s/AKfycbx-J8mYleE8VGpZFtFEGNLJ
 
 let RAM_DB = {};
 let currentUser = null, currentRole = null;
-let nhanvienTags = [];
+let dropSel = { sieuthi: null, sanphams: [], nhanvien: [] };
+let filteredDeclarations = [];
+let selectedIds = new Set();
+let currentEditId = null;
 
 function showLoader(txt = 'Đang kết nối Database...') { document.getElementById('loaderText').textContent = txt; document.getElementById('globalLoader').style.display = 'flex'; }
 function hideLoader() { document.getElementById('globalLoader').style.display = 'none'; }
 
 const DB = {
-  get: k => RAM_DB[k] ? JSON.parse(JSON.stringify(RAM_DB[k])) : null,
+  get: k => {
+    if (RAM_DB[k]) return JSON.parse(JSON.stringify(RAM_DB[k]));
+    let local = localStorage.getItem('bhx_v6_' + k);
+    return local ? JSON.parse(local) : null;
+  },
   set: async (k, v) => {
     RAM_DB[k] = v;
-    try {
-      showLoader('Đang đồng bộ dữ liệu...');
-      let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: k, value: v }) });
-      if (!res.ok) throw new Error("Network response was not ok");
-      hideLoader();
-    } catch (e) {
-      hideLoader(); toast('error', 'Lỗi đồng bộ máy chủ! Vui lòng kiểm tra kết nối.');
-      console.error(e);
+    localStorage.setItem('bhx_v6_' + k, JSON.stringify(v));
+    
+    if (API_URL && API_URL.startsWith("http")) {
+      try {
+        fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: k, value: v }), headers: { "Content-Type": "text/plain;charset=utf-8" } }).catch(e=>{});
+      } catch (e) {}
     }
   }
 };
 
 window.onload = async function() {
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error("Fetch failed");
-    RAM_DB = await res.json();
-    initSeedData();
-    hideLoader();
-    document.getElementById('loginOverlay').classList.remove('hidden');
-  } catch(e) {
-    hideLoader(); toast('error','Lỗi kết nối Server! Chạy offline.');
-    initSeedData(); document.getElementById('loginOverlay').classList.remove('hidden');
+  initSeedData();
+  
+  if (API_URL && API_URL.startsWith("http")) {
+    try {
+      const res = await fetch(API_URL);
+      if (res.ok) {
+        const serverData = await res.json();
+        if (serverData && Object.keys(serverData).length > 0) {
+          RAM_DB = serverData; 
+          for (let key in serverData) { localStorage.setItem('bhx_v6_' + key, JSON.stringify(serverData[key])); }
+        }
+      }
+    } catch(e) {
+      toast('warning', 'Đang chạy chế độ Offline do lỗi kết nối.');
+    }
   }
+  hideLoader();
+  document.getElementById('loginOverlay').classList.remove('hidden');
 };
 
 function initSeedData() {
-  if (!RAM_DB['adminPass']) DB.set('adminPass', '24122004');
-  if (!RAM_DB['users']) DB.set('users', [{ code: 'QLTP01', name: 'Nguyễn Văn Tân', pass: '1' }]);
-  if (!RAM_DB['sieuthi']) DB.set('sieuthi', [{ code: 'ST001', name: 'BHX Lê Văn Sỹ'}, {code: 'ST002', name: 'BHX Nguyễn Trãi'}]);
-  if (!RAM_DB['sanpham']) DB.set('sanpham', [{ code: 'SP001', name: 'Bia Tiger'}, {code: 'SP002', name: 'Mì Hảo Hảo'}]);
-  if (!RAM_DB['nhanvien']) DB.set('nhanvien', [{ code: 'NV001', name: 'Nguyễn Văn A'}, {code: 'NV002', name: 'Trần Thị B'}]);
-  if (!RAM_DB['declarations']) DB.set('declarations', []);
+  const seed = (k, v) => { if (!localStorage.getItem('bhx_v6_'+k)) { RAM_DB[k] = v; localStorage.setItem('bhx_v6_'+k, JSON.stringify(v)); } else { RAM_DB[k] = JSON.parse(localStorage.getItem('bhx_v6_'+k)); } };
+  seed('adminPass', '24122004');
+  seed('users', [{ code: 'QLTP01', name: 'Nguyễn Văn Tân', pass: '1' }]);
+  seed('sieuthi', [{ code: 'ST001', name: 'BHX Lê Văn Sỹ'}, {code: 'ST002', name: 'BHX Nguyễn Trãi'}]);
+  seed('sanpham', [{ code: 'SP001', name: 'Bia Tiger'}, {code: 'SP002', name: 'Mì Hảo Hảo'}]);
+  seed('nhanvien', [{ code: 'NV001', name: 'Nguyễn Văn A'}, {code: 'NV002', name: 'Trần Thị B'}]);
+  seed('declarations', []);
 }
 
 function toast(type, msg) { const c = document.getElementById('toastContainer'); const t = document.createElement('div'); t.className = 'toast '+type; t.textContent=msg; c.appendChild(t); setTimeout(()=>t.remove(), 3000); }
@@ -302,35 +361,21 @@ function toggleLoginFields() {
   document.getElementById('grpAdmin').classList.toggle('hidden', r !== 'admin');
 }
 
-function filterLoginDrop(q) {
-  q = q.trim().toLowerCase();
-  const listEl = document.getElementById('loginDrop-list');
-  if (!q) { listEl.classList.add('hidden'); return; }
-  
-  const users = DB.get('users') || [];
-  const filtered = users.filter(u => String(u.code).toLowerCase().includes(q) || String(u.name).toLowerCase().includes(q)).slice(0, 10);
-  
-  listEl.innerHTML = filtered.length 
-    ? filtered.map(u => `<div class="dropdown-item" onmousedown="document.getElementById('loginCode').value='${u.code}'; document.getElementById('loginDrop-list').classList.add('hidden');"><span>${u.code} - ${u.name}</span></div>`).join('') 
-    : '<div style="padding:8px;color:#888;">Không tìm thấy</div>';
-  listEl.classList.remove('hidden');
-}
-
 function handleLogin() {
   const r = document.getElementById('loginRole').value;
   if (r === 'admin') {
     const p = document.getElementById('loginPassAdmin').value;
     if (p !== DB.get('adminPass')) return toast('error', 'Sai mật khẩu Admin!');
-    currentUser = { code: 'admin', name: 'Admin BHX' }; currentRole = 'admin';
+    currentUser = { code: 'ADMIN', name: 'Quản trị hệ thống' }; currentRole = 'admin';
     proceedLogin();
   } else {
-    const c = document.getElementById('loginCode').value.trim().toUpperCase();
+    const c = document.getElementById('loginCodeQLTP').value.trim().toUpperCase();
     const p = document.getElementById('loginPassQLTP').value;
     if (!c || !p) return toast('error', 'Nhập mã và mật khẩu!');
     
     const users = DB.get('users') || [];
     const u = users.find(x => x.code === c);
-    if (!u) return toast('error', `Mã QLTP [${c}] không tồn tại!`);
+    if (!u) return toast('error', `Tài khoản QLTP [${c}] không tồn tại!`);
     if (u.pass !== p) return toast('error', 'Sai mật khẩu!');
     
     currentUser = u; currentRole = 'qltp';
@@ -355,38 +400,52 @@ function proceedLogin() {
   document.getElementById('appContainer').classList.remove('blurred');
   
   const roleName = currentRole === 'admin' ? 'ADMIN' : 'QLTP';
+  
+  // CHI TIẾT SỬA LỖI Ở ĐÂY: Thẻ headerUserName và filter đã được khôi phục trong HTML
   document.getElementById('headerUserName').textContent = `${currentUser.code} - ${currentUser.name}`;
-  document.getElementById('roleStatusText').textContent = `Phân hệ: ${roleName}`;
+  document.getElementById('roleStatusText').textContent = `Tài khoản: ${roleName}`;
   
   document.getElementById('btnAdminMaster').classList.toggle('hidden', currentRole !== 'admin');
-  document.getElementById('btnTaoMoi').classList.toggle('hidden', currentRole === 'admin');
+  document.getElementById('btnTaoMoi').classList.toggle('hidden', currentRole === 'admin'); // Admin ko tạo đơn
   
-  updateDatalists(); loadTable();
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('filterTuNgay').value = today; document.getElementById('filterDenNgay').value = today;
+  
+  loadTable();
 }
 
 function logout() {
   currentUser = null; currentRole = null;
   document.getElementById('appContainer').classList.add('blurred');
   document.getElementById('loginOverlay').classList.remove('hidden');
-  document.getElementById('loginPassAdmin').value = ''; document.getElementById('loginCode').value = ''; document.getElementById('loginPassQLTP').value = '';
-}
-
-function updateDatalists() {
-  document.getElementById('listDataST').innerHTML = (DB.get('sieuthi')||[]).map(s => `<option value="${s.code} - ${s.name}">`).join('');
-  document.getElementById('listDataSP').innerHTML = (DB.get('sanpham')||[]).map(s => `<option value="${s.code} - ${s.name}">`).join('');
+  document.getElementById('loginPassAdmin').value = ''; document.getElementById('loginCodeQLTP').value = ''; document.getElementById('loginPassQLTP').value = '';
 }
 
 // ============================================================
-// TABLE
+// TABLE (HIỂN THỊ DỮ LIỆU)
 // ============================================================
 function loadTable() {
   let all = DB.get('declarations') || [];
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
   
-  const tbody = document.getElementById('tableBody');
-  if (!all.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">Chưa có dữ liệu</td></tr>`; return; }
+  const fST = document.getElementById('filterSieuthi').value.toLowerCase();
+  const fFr = document.getElementById('filterTuNgay').value;
+  const fTo = document.getElementById('filterDenNgay').value;
 
-  tbody.innerHTML = all.map((d, i) => {
+  filteredDeclarations = all.filter(d => {
+    const chuoiTimKiem = ((d.sieuthiCode||'') + ' ' + (d.sieuthiName||'')).toLowerCase();
+    if (fST && !chuoiTimKiem.includes(fST)) return false;
+    if (fFr && d.ngay < fFr) return false;
+    if (fTo && d.ngay > fTo) return false;
+    return true; 
+  });
+
+  document.getElementById('totalCount').textContent = `Tổng: ${filteredDeclarations.length} đơn`;
+  
+  const tbody = document.getElementById('tableBody');
+  if (!filteredDeclarations.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">Chưa có dữ liệu</td></tr>`; return; }
+
+  tbody.innerHTML = filteredDeclarations.map((d, i) => {
     const spHtml = (d.sanphams||[]).map(sp => `• ${sp.code} - ${sp.name}`).join('<br>');
     const nvHtml = (d.nhanvienList||[]).map(nv => `• ${nv.code} - ${nv.name}`).join('<br>');
     let fDate = d.ngay.split('-').reverse().join('/');
@@ -394,10 +453,11 @@ function loadTable() {
     let acts = '';
     if (currentRole === 'admin' || d.authorCode === currentUser.code) {
       acts = `<button class="btn btn-primary btn-sm" onclick="openEditModal('${d.id}')">✏ Sửa</button> 
-              <button class="btn btn-danger btn-sm" onclick="deleteRecord('${d.id}')">🗑</button>`;
+              <button class="btn btn-danger btn-sm" onclick="deleteRecord('${d.id}')">🗑 Xóa</button>`;
     }
     return `<tr>
-      <td>${i+1}</td>
+      <td style="text-align:center;"><input type="checkbox" ${selectedIds.has(d.id)?'checked':''} onchange="toggleSelect('${d.id}')"></td>
+      <td style="color:#999;">${i+1}</td>
       <td style="font-weight:600;color:var(--green);">${d.authorCode} - ${d.authorName}</td>
       <td style="font-weight:600;">${d.sieuthiCode} - ${d.sieuthiName}</td>
       <td>${fDate}<br><span style="color:#888;">${d.tuGio} - ${d.denGio}</span></td>
@@ -415,53 +475,123 @@ async function deleteRecord(id) {
   toast('success', 'Đã xóa!'); loadTable();
 }
 
+function toggleSelectAll() { const c = document.getElementById('selectAll').checked; document.querySelectorAll('#tableBody input[type=checkbox]').forEach(cb=>{cb.checked=c; let id=cb.getAttribute('onchange').match(/'([^']+)'/)[1]; c?selectedIds.add(id):selectedIds.delete(id);}); updateSelectedCount(); }
+function toggleSelect(id) { selectedIds.has(id) ? selectedIds.delete(id) : selectedIds.add(id); updateSelectedCount(); }
+function updateSelectedCount() { document.getElementById('selectedCount').textContent = selectedIds.size>0?`(${selectedIds.size})`:''; document.getElementById('btnBulkDelete').classList.toggle('hidden', selectedIds.size===0); }
+async function bulkDeleteRecords() { if(!confirm(`Xóa vĩnh viễn ${selectedIds.size} đơn?`)) return; let d = DB.get('declarations')||[]; await DB.set('declarations', d.filter(x=>!selectedIds.has(x.id))); selectedIds.clear(); updateSelectedCount(); loadTable(); toast('success','Đã xóa'); }
+
 // ============================================================
-// FORM (MULTI-PRODUCT & TAGS)
+// DROPDOWN SEARCH & MULTI-ITEM ARRAY LOGIC 
+// ============================================================
+function filterDrop(field, query) {
+  const q = String(query).toLowerCase().trim();
+  let items = DB.get(field) || [];
+  items = items.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q)).slice(0, 15);
+
+  const listEl = document.getElementById(field==='filterST'?'dropFilterst-list':`drop${cap(field)}-list`);
+  let html = items.map(it => {
+    const safeObj = JSON.stringify(it).replace(/"/g,'&quot;');
+    return `<div class="dropdown-item" onmousedown="selectDropItem('${field}', ${safeObj})"><span>${it.code} - ${it.name}</span></div>`;
+  }).join('');
+
+  listEl.innerHTML = html || '<div style="padding:10px;color:#999;">Không có kết quả</div>';
+  listEl.classList.remove('hidden');
+}
+
+document.addEventListener('click', e => { document.querySelectorAll('.dropdown-list').forEach(l => { if(!l.parentElement.contains(e.target)) l.classList.add('hidden'); }); });
+
+function selectDropItem(field, item) {
+  if (field === 'filterST') {
+    document.getElementById('filterSieuthi').value = `${item.code} - ${item.name}`;
+    document.getElementById('dropFilterst-list').classList.add('hidden');
+    loadTable(); return;
+  }
+
+  document.getElementById(`drop${cap(field)}-list`).classList.add('hidden');
+
+  if (field === 'sanpham' || field === 'nhanvien') {
+    document.getElementById(`input${cap(field)}`).value = '';
+    let arr = field === 'sanpham' ? dropSel.sanphams : dropSel.nhanvien;
+    if (!arr.find(n => n.code === item.code)) { arr.push({ code: item.code, name: item.name }); }
+  } else {
+    dropSel[field] = { code: item.code, name: item.name };
+    document.getElementById(`input${cap(field)}`).value = `${item.code} - ${item.name}`;
+  }
+  renderTags(field); 
+}
+
+function removeTag(field, idx) {
+  if (field === 'sanpham') dropSel.sanphams.splice(idx, 1);
+  else if (field === 'nhanvien') dropSel.nhanvien.splice(idx, 1);
+  else { dropSel[field] = null; document.getElementById(`input${cap(field)}`).value = ''; }
+  renderTags(field);
+}
+
+function renderTags(field) {
+  const cont = document.getElementById(`${field}Selected`);
+  if (field === 'sanpham' || field === 'nhanvien') {
+    let arr = field === 'sanpham' ? dropSel.sanphams : dropSel.nhanvien;
+    cont.innerHTML = arr.map((n, i) => `<span class="tag-item">${n.code} - ${n.name} <span class="remove" onmousedown="removeTag('${field}',${i})">×</span></span>`).join('');
+  } else {
+    const sel = dropSel[field];
+    cont.innerHTML = sel ? `<span class="tag-item">${sel.code} - ${sel.name} <span class="remove" onmousedown="removeTag('${field}')">×</span></span>` : '';
+  }
+}
+
+// ============================================================
+// CREATE/EDIT FORM (MULTI-PRODUCT)
 // ============================================================
 function openCreateModal() {
-  currentEditId = null; nhanvienTags = [];
-  document.getElementById('inputSieuthi').value = '';
-  document.getElementById('formNgay').value = ''; document.getElementById('formTuGio').value = ''; document.getElementById('formDenGio').value = '';
+  currentEditId = null; dropSel = { sieuthi: null, sanphams: [], nhanvien: [] };
+  document.getElementById('inputSieuthi').value = ''; document.getElementById('formNgay').value = ''; document.getElementById('formTuGio').value = ''; document.getElementById('formDenGio').value = '';
   document.getElementById('productRowsContainer').innerHTML = ''; addProductRow(); 
-  renderNVTags();
+  
+  ['sieuthi', 'nhanvien'].forEach(f => renderTags(f));
   document.getElementById('createModalTitle').textContent = '➕ Khai báo Biệt Kích'; showModal('createModal');
 }
 
 function openEditModal(id) {
-  const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return;
-  currentEditId = id; nhanvienTags = [...(d.nhanvienList||[])];
+  const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return; currentEditId = id;
+  dropSel.sieuthi = { code: d.sieuthiCode, name: d.sieuthiName };
+  dropSel.sanphams = [...(d.sanphams||[])]; dropSel.nhanvien = [...(d.nhanvienList||[])];
+  
   document.getElementById('inputSieuthi').value = `${d.sieuthiCode} - ${d.sieuthiName}`;
   document.getElementById('formNgay').value = d.ngay; document.getElementById('formTuGio').value = d.tuGio; document.getElementById('formDenGio').value = d.denGio;
   
   const pCont = document.getElementById('productRowsContainer'); pCont.innerHTML = '';
   if(d.sanphams && d.sanphams.length > 0) { d.sanphams.forEach(sp => addProductRow(`${sp.code} - ${sp.name}`)); } else { addProductRow(); }
-  renderNVTags();
+  
+  ['sieuthi', 'nhanvien'].forEach(f => renderTags(f));
   document.getElementById('createModalTitle').textContent = '✏ Sửa Khai báo'; showModal('createModal');
 }
 
 function addProductRow(val = '') {
   const cont = document.getElementById('productRowsContainer');
+  const uid = Date.now().toString(36) + Math.random().toString(36).substr(2);
+  
   const div = document.createElement('div'); div.className = 'product-row';
-  div.innerHTML = `<input type="text" class="form-control sp-input" list="listDataSP" placeholder="Gõ chọn Mã - Tên SP..." value="${val}"><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">🗑</button>`;
+  div.innerHTML = `
+    <div class="search-drop-wrap">
+      <input type="text" class="form-control sp-input" placeholder="Gõ tìm Mã - Tên SP..." value="${val}"
+        oninput="filterMultiProductDrop('${uid}', this.value)" onfocus="filterMultiProductDrop('${uid}', this.value)">
+      <div class="dropdown-list hidden" id="drop-${uid}"></div>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">🗑</button>
+  `;
   cont.appendChild(div);
 }
 
-function filterNV(query) {
-  const q = query.toLowerCase().trim(); const listEl = document.getElementById('dropNhanvien-list');
-  if(!q) { listEl.classList.add('hidden'); return; }
-  const allNV = DB.get('nhanvien') || [];
-  const filtered = allNV.filter(n => String(n.name).toLowerCase().includes(q) || String(n.code).toLowerCase().includes(q)).slice(0, 10);
-  listEl.innerHTML = filtered.length ? filtered.map(n => `<div class="dropdown-item" onmousedown="selectNV('${n.code}','${n.name}')"><span>${n.code} - ${n.name}</span></div>`).join('') : '<div style="padding:8px;color:#888;">Không tìm thấy</div>';
+function filterMultiProductDrop(uid, query) {
+  const q = String(query).toLowerCase().trim(); let items = DB.get('sanpham') || [];
+  items = items.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q)).slice(0, 15);
+  const listEl = document.getElementById(`drop-${uid}`);
+  listEl.innerHTML = items.map(it => `<div class="dropdown-item" onmousedown="selectMultiProduct('${uid}', '${it.code}', '${it.name}')"><span>${it.code} - ${it.name}</span></div>`).join('') || '<div style="padding:10px;color:#999;">Không có kết quả</div>';
   listEl.classList.remove('hidden');
 }
 
-function selectNV(code, name) {
-  if(!nhanvienTags.find(x => x.code === code)) { nhanvienTags.push({code, name}); }
-  document.getElementById('inputNhanvien').value = ''; document.getElementById('dropNhanvien-list').classList.add('hidden'); renderNVTags();
-}
-
-function renderNVTags() {
-  document.getElementById('nhanvienSelected').innerHTML = nhanvienTags.map((n, i) => `<span class="tag-item">${n.code} - ${n.name} <span class="remove" onclick="nhanvienTags.splice(${i},1);renderNVTags()">×</span></span>`).join('');
+function selectMultiProduct(uid, code, name) {
+  document.getElementById(`drop-${uid}`).previousElementSibling.value = `${code} - ${name}`;
+  document.getElementById(`drop-${uid}`).classList.add('hidden');
 }
 
 async function submitForm() {
@@ -478,22 +608,31 @@ async function submitForm() {
     if(val && val.includes(' - ')) { let p = val.split(' - '); sanphams.push({ code: p[0].trim(), name: p[1].trim() }); }
   });
   if (sanphams.length === 0) return toast('error', 'Chọn Sản phẩm!');
-  if (nhanvienTags.length === 0) return toast('error', 'Chọn Nhân viên!');
+  if (dropSel.nhanvien.length === 0) return toast('error', 'Chọn Nhân viên!');
 
   let decls = DB.get('declarations') || [];
   if (currentEditId) {
     let idx = decls.findIndex(x => x.id === currentEditId);
-    decls[idx] = { ...decls[idx], sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: nhanvienTags };
-    await DB.set('declarations', decls); toast('success', 'Đã lưu thay đổi!');
+    decls[idx] = { ...decls[idx], sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: dropSel.nhanvien };
+    await DB.set('declarations', decls); toast('success', 'Đã cập nhật!');
   } else {
-    decls.unshift({ id: 'BK' + Date.now().toString().slice(-6), authorCode: currentUser.code, authorName: currentUser.name, sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: nhanvienTags, createdAt: new Date().toISOString() });
+    decls.unshift({ id: 'BK' + Date.now().toString().slice(-6), authorCode: currentUser.code, authorName: currentUser.name, sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: dropSel.nhanvien, createdAt: new Date().toISOString() });
     await DB.set('declarations', decls); toast('success', 'Đã tạo thành công!');
   }
   closeModal('createModal'); loadTable();
 }
 
 // ============================================================
-// ADMIN QUẢN LÝ MASTER DATA
+// EXPORT EXCEL
+// ============================================================
+function exportExcel() {
+  const data = filteredDeclarations.map(d => [d.id, d.authorCode + ' - ' + d.authorName, d.sieuthiCode + ' - ' + d.sieuthiName, fDate(d.ngay), d.tuGio, d.denGio, (d.sanphams||[]).map(s=>s.code+' - '+s.name).join('; '), (d.nhanvienList||[]).map(n=>n.code+' - '+n.name).join('; ')]);
+  const ws = XLSX.utils.aoa_to_sheet([['Mã Đơn','Người tạo','Siêu thị','Ngày','Từ giờ','Đến giờ','Danh sách SP','DS Nhân Viên'], ...data]);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KhaiBao"); XLSX.writeFile(wb, `BietKich_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ============================================================
+// ADMIN QUẢN LÝ MASTER DATA (USERS)
 // ============================================================
 function openAdminModal() { renderAdminUsers(); showModal('adminModal'); }
 function renderAdminUsers() {
@@ -502,14 +641,15 @@ function renderAdminUsers() {
 }
 async function addMasterUser() {
   const c = document.getElementById('newQltpCode').value.trim().toUpperCase(); const n = document.getElementById('newQltpName').value.trim();
-  if(!c || !n) return toast('error', 'Nhập đủ!');
+  if(!c || !n) return toast('error', 'Nhập đủ mã và tên!');
   let users = DB.get('users') || []; if(users.find(x => x.code === c)) return toast('error', 'Mã QLTP đã tồn tại!');
   users.push({ code: c, name: n, pass: '1' }); await DB.set('users', users); toast('success', 'Thêm thành công!');
   document.getElementById('newQltpCode').value = ''; document.getElementById('newQltpName').value = ''; renderAdminUsers();
 }
-async function deleteAdminUser(code) { if(!confirm('Xóa tài khoản QLTP này?')) return; let users = DB.get('users') || []; await DB.set('users', users.filter(u => u.code !== code)); renderAdminUsers(); }
-
-document.addEventListener('click', e => { if(!e.target.closest('#dropNhanvien') && !e.target.closest('#loginOverlay')) { const l = document.getElementById('dropNhanvien-list'); if(l) l.classList.add('hidden'); const ll = document.getElementById('loginDrop-list'); if(ll) ll.classList.add('hidden'); } });
+async function deleteAdminUser(code) {
+  if(!confirm('Xóa tài khoản QLTP này?')) return;
+  let users = DB.get('users') || []; await DB.set('users', users.filter(u => u.code !== code)); renderAdminUsers();
+}
 </script>
 </body>
 </html>
