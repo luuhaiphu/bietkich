@@ -720,10 +720,19 @@ function handleLogin() {
     // Thử tìm trong IndexedDB trước
     const qltps = DB.get('qltpList') || [];
     const found = qltps.find(x => String(x.code) === code);
-    if (!found) return toast('error', `Mã QLTP [${code}] không tồn tại. Liên hệ Admin.`);
-    currentUser = { code: found.code, name: found.name, role: 'qltp' };
+    
+    // Nếu máy ĐÃ CÓ cache mà tìm không ra mã -> Báo lỗi
+    if (qltps.length > 0 && !found) {
+      return toast('error', `Mã QLTP [${code}] không tồn tại. Liên hệ Admin.`);
+    }
+
+    // Nếu tìm thấy, HOẶC máy chưa có cache (trống) -> Cho qua để load từ Sheets
+    currentUser = { 
+      code: code, 
+      name: found ? found.name : code, // Nếu chưa có data thì tạm lấy mã làm tên
+      role: 'qltp' 
+    };
     currentRole = 'qltp';
-  }
 
   finishLogin();
 }
