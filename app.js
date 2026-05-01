@@ -101,8 +101,14 @@ function saveToIDB(key, value) {
 // ============================================================
 // [A] GOOGLE SHEETS API v3 — chỉ 1 Web App URL
 // ============================================================
+// ✅ Thêm dòng này, thay YOUR_ID bằng ID thật của bạn
+const DEFAULT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxGfxHkj8UCXdjdOE4mXfdsIKAQgQ6c8XeUkyn7k-A19uyLJf7xEmRP1sjdKfyEjr1LLg/exec';
 const SHEETS = {
-  get cfg()      { return DB.get('sheetsConfig') || {}; },
+  get cfg() {
+  const saved = DB.get('sheetsConfig') || {};
+  if (!saved.webAppUrl) saved.webAppUrl = DEFAULT_WEBAPP_URL;
+  return saved;
+},
   get ready()    { return !!(this.cfg.webAppUrl); },
   get canWrite() { return !!(this.cfg.webAppUrl); },
 
@@ -466,50 +472,70 @@ function suggestQLTP(val) {
   suggest.classList.remove('hidden');
 }
 
+// Thêm biến lock vào khu vực GLOBAL STATE (gần currentUser, currentRole...)
+let isLoggingIn = false;
+
+// SỬA selectQLTPLogin — bỏ handleLogin() tự động gọi, chỉ điền form
 function selectQLTPLogin(code, name) {
   document.getElementById('loginCodeQLTP').value = code;
   document.getElementById('qltpSuggest').classList.add('hidden');
   document.getElementById('qltpConfirm').style.display = 'block';
   document.getElementById('qltpConfirmText').textContent = fCodeName(code, name);
-  handleLogin();
+  // ❌ XÓA DÒNG: handleLogin(); — đây là nguyên nhân spam toast
 }
 
+// SỬA handleLogin — thêm async + lock + fallback fetch
 async function handleLogin() {
+  if (isLoggingIn) return; // chống spam
+  isLoggingIn = true;
+
   const r = document.getElementById('loginRole').value;
-  if (!r) return toast('error', 'Chọn phân hệ!');
+  if (!r) { isLoggingIn = false; return toast('error', 'Chọn phân hệ!'); }
 
   if (r === 'admin') {
     const p = document.getElementById('loginPassAdmin').value;
-    if (p !== DB.get('adminPass')) return toast('error', 'Sai mật khẩu Admin!');
+    if (p !== DB.get('adminPass')) {
+      isLoggingIn = false;
+      return toast('error', 'Sai mật khẩu Admin!');
+    }
     currentUser = { code: 'admin', name: 'Admin BHX', role: 'admin' };
     currentRole = 'admin';
 
   } else {
     const code = document.getElementById('loginCodeQLTP').value.trim();
-    if (!code) return toast('error', 'Nhập mã QLTP!');
+    if (!code) { isLoggingIn = false; return toast('error', 'Nhập mã QLTP!'); }
 
     let qltps = DB.get('qltpList') || [];
 
-    // ✅ Nếu cache rỗng → thử fetch lại từ Sheets trước khi báo lỗi
-    if (qltps.length === 0 && SHEETS.ready) {
-      toast('warning', '⏳ Đang tải danh sách QLTP từ server...');
+    // ✅ Cache rỗng → fetch từ server (bỏ điều kiện SHEETS.ready)
+    if (qltps.length === 0) {
+      const btn = document.querySelector('#grpQLTP .btn-login');
+      if (btn) btn.textContent = '⏳ Đang tải...';
       try {
         const data = await SHEETS.get({ action: 'lightData' });
-        if (data.sieuthi  && data.sieuthi.length  > 0) DB.set('sieuthi',  data.sieuthi);
-        if (data.qltpList && data.qltpList.length > 0) {
+        if (data.sieuthi?.length  > 0) DB.set('sieuthi',  data.sieuthi);
+        if (data.qltpList?.length > 0) {
           DB.set('qltpList', data.qltpList);
           qltps = data.qltpList;
         }
       } catch (err) {
-        console.warn('[Login] Không fetch được qltpList:', err.message);
+        isLoggingIn = false;
+        if (btn) btn.textContent = 'VÀO HỆ THỐNG →';
+        return toast('error', '❌ Không kết nối được server. Kiểm tra mạng!');
       }
+      if (btn) btn.textContent = 'VÀO HỆ THỐNG →';
     }
 
     const found = qltps.find(x => String(x.code) === code);
-    if (!found) return toast('error', `Mã QLTP [${code}] không tồn tại. Liên hệ Admin hoặc kiểm tra kết nối.`);
+    if (!found) {
+      isLoggingIn = false;
+      return toast('error', `Mã QLTP [${code}] không tồn tại!`);
+    }
     currentUser = { code: found.code, name: found.name, role: 'qltp' };
     currentRole = 'qltp';
   }
+
+  isLoggingIn = false;
   finishLogin();
 }
 
