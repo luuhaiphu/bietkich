@@ -1535,39 +1535,71 @@ function saveSheetConfig() {
 }
 
 async function testSheetConnection() {
-  saveSheetConfig();
   const el = document.getElementById('sheetTestResult');
-  if (!SHEETS.ready) { el.innerHTML='<span style="color:red;">❌ Chưa có Web App URL</span>'; return; }
-  el.innerHTML = '⏳ Đang kiểm tra...';
+  el.innerHTML = '⏳ Đang kiểm tra kết nối Firebase...';
   try {
-    const data = await SHEETS.get({ action: 'ping' });
-    el.innerHTML = `<span style="color:green;">✅ Kết nối thành công! Server: ${data.msg}</span>`;
-    SHEETS.setStatus('ok', 'Đã kết nối');
+    // Thử ghi 1 ping nhỏ để test quyền truy cập
+    await firestore.collection('config').doc('ping').set({ lastPing: new Date() });
+    el.innerHTML = `<span style="color:green;">✅ Kết nối Firebase thành công! Băng thông: Cực nhanh 🚀</span>`;
+    FIRE_DB.setStatus('ok', 'Đã kết nối');
   } catch (err) {
-    el.innerHTML = `<span style="color:red;">❌ ${err.message}</span>`;
-    SHEETS.setStatus('error', 'Lỗi kết nối');
+    el.innerHTML = `<span style="color:red;">❌ Lỗi: ${err.message} (Nhớ bật Test Mode trong tab Rules nhé!)</span>`;
+    FIRE_DB.setStatus('error', 'Lỗi kết nối');
   }
 }
 
 async function pushMasterToSheets() {
-  if (!SHEETS.ready) { toast('warning','Chưa cấu hình Google Sheets!'); return; }
   const tabs = [
-    { tab:'phanbo',   key:'sieuthi',  headers:['id','code','name','qltpCode','qltpName'] },
-    { tab:'nhanvien', key:'nhanvien', headers:['id','code','name','sieuthiCode'] },
-    { tab:'qltpList', key:'qltpList', headers:['code','name'] }
+    { tab: 'qltpList', key: 'qltpList' },
+    { tab: 'sieuthi',  key: 'sieuthi' },
+    { tab: 'nhanvien', key: 'nhanvien' },
+    { tab: 'sanpham',  key: 'sanpham' } // 95k dòng sẽ mất khoảng 30-40 giây
   ];
-  SHEETS.setStatus('syncing','Đẩy master...');
+
+  FIRE_DB.setStatus('syncing', 'Đang đẩy lên Firebase...');
   let pushed = 0;
-  for (const { tab, key, headers } of tabs) {
+
+  for (const { tab, key } of tabs) {
     try {
       const data = DB.get(key) || [];
-      await SHEETS.post('pushMaster', { tab, rows: data, headers });
+      if (data.length === 0) continue;
+
+      toast('warning', `⏳ Đang đẩy ${data.length} dòng lên bảng [${tab}]... Đừng đóng trình duyệt nhé!`);
+
+      // Firebase giới hạn mỗi lần gửi tối đa 500 dòng -> Ta phải chia nhỏ mảng (Chunking)
+      const chunks = [];
+      for (let i = 0; i < data.length; i += 500) {
+        chunks.push(data.slice(i, i + 500));
+      }
+
+      for (let i = 0; i < chunks.length; i++) {
+        const batch = firestore.batch();
+        chunks[i].forEach(item => {
+          // Lấy mã code làm ID của tài liệu luôn cho dễ tìm kiếm sau này
+          const docId = String(item.code || item.id);
+          const docRef = firestore.collection(tab).doc(docId);
+          batch.set(docRef, item);
+        });
+        await batch.commit();
+        console.log(`Đã đẩy phần ${i + 1}/${chunks.length} của bảng ${tab}`);
+      }
       pushed++;
-    } catch (err) { toast('error',`Lỗi đẩy ${tab}: `+err.message); }
+    } catch (err) {
+      toast('error', `Lỗi đẩy ${tab}: ` + err.message);
+      console.error(err);
+    }
   }
-  SHEETS.setStatus('ok','Xong');
-  toast('success',`✅ Đã đẩy ${pushed}/3 bảng master data lên Sheets!`);
-  logAction('PUSH MASTER', `${pushed} tabs`);
+
+  // Cập nhật version để tự động báo các máy QLTP khác reload lại data
+  try {
+    await firestore.collection('config').doc('masterData').set({
+       masterVersion: Date.now().toString()
+    });
+  } catch(e) {}
+
+  FIRE_DB.setStatus('ok', 'Đã đẩy xong');
+  toast('success', `✅ Đã bơm thành công ${pushed} bảng Master Data lên Firebase!`);
+  logAction('PUSH MASTER FIREBASE', `${pushed} tabs`);
 }
 
 // Copy Apps Script code
