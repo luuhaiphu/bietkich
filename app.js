@@ -351,10 +351,39 @@ function validateTime(t1, t2) {
 // ============================================================
 // INIT
 // ============================================================
+// CŨ
 function initSystem() {
   initSeedData();
   loadSheetConfigToForm();
   updateStatChips();
+}
+
+// MỚI
+async function initSystem() {
+  initSeedData();
+  loadSheetConfigToForm();
+  updateStatChips();
+
+  // ✅ Pre-load qltpList TRƯỚC khi user đăng nhập
+  if (SHEETS.ready) {
+    SHEETS.setStatus('syncing', 'Đang tải danh sách QLTP...');
+    try {
+      const verData = await SHEETS.get({ action: 'version' });
+      const serverVer = verData.masterVersion || '0';
+      const cachedVer = DB.get('cachedMasterVersion') || '0';
+      if (serverVer === '0' || serverVer !== cachedVer) {
+        const data = await SHEETS.get({ action: 'lightData' });
+        if (data.sieuthi  && data.sieuthi.length  > 0) DB.set('sieuthi',  data.sieuthi);
+        if (data.qltpList && data.qltpList.length > 0) DB.set('qltpList', data.qltpList);
+        DB.set('cachedMasterVersion', serverVer);
+      }
+      SHEETS.setStatus('ok', 'Sẵn sàng');
+    } catch (err) {
+      SHEETS.setStatus('error', 'Không kết nối được Sheets');
+      console.warn('[PreLoad] Lỗi:', err.message);
+    }
+    updateStatChips();
+  }
 }
 
 function initSeedData() {
@@ -445,7 +474,7 @@ function selectQLTPLogin(code, name) {
   handleLogin();
 }
 
-function handleLogin() {
+async function handleLogin() {
   const r = document.getElementById('loginRole').value;
   if (!r) return toast('error', 'Chọn phân hệ!');
 
@@ -454,12 +483,30 @@ function handleLogin() {
     if (p !== DB.get('adminPass')) return toast('error', 'Sai mật khẩu Admin!');
     currentUser = { code: 'admin', name: 'Admin BHX', role: 'admin' };
     currentRole = 'admin';
+
   } else {
     const code = document.getElementById('loginCodeQLTP').value.trim();
     if (!code) return toast('error', 'Nhập mã QLTP!');
-    const qltps = DB.get('qltpList') || [];
+
+    let qltps = DB.get('qltpList') || [];
+
+    // ✅ Nếu cache rỗng → thử fetch lại từ Sheets trước khi báo lỗi
+    if (qltps.length === 0 && SHEETS.ready) {
+      toast('warning', '⏳ Đang tải danh sách QLTP từ server...');
+      try {
+        const data = await SHEETS.get({ action: 'lightData' });
+        if (data.sieuthi  && data.sieuthi.length  > 0) DB.set('sieuthi',  data.sieuthi);
+        if (data.qltpList && data.qltpList.length > 0) {
+          DB.set('qltpList', data.qltpList);
+          qltps = data.qltpList;
+        }
+      } catch (err) {
+        console.warn('[Login] Không fetch được qltpList:', err.message);
+      }
+    }
+
     const found = qltps.find(x => String(x.code) === code);
-    if (!found) return toast('error', `Mã QLTP [${code}] không tồn tại. Liên hệ Admin.`);
+    if (!found) return toast('error', `Mã QLTP [${code}] không tồn tại. Liên hệ Admin hoặc kiểm tra kết nối.`);
     currentUser = { code: found.code, name: found.name, role: 'qltp' };
     currentRole = 'qltp';
   }
