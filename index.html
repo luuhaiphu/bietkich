@@ -19,11 +19,6 @@
   #appContainer { display: flex; flex-direction: column; min-height: 100vh; transition: filter 0.3s; }
   #appContainer.blurred { filter: blur(8px); pointer-events: none; user-select: none; height: 100vh; overflow: hidden; }
 
-  /* LOADING OVERLAY */
-  #globalLoader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-  .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--green); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
-  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
   /* LOGIN */
   #loginOverlay { position: fixed; inset: 0; background: linear-gradient(135deg,#1a7a3c 0%,#0d4f26 100%); z-index: 10000; display: flex; align-items: center; justify-content: center; }
   .login-box { background: white; padding: 28px 32px; border-radius: 12px; width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
@@ -51,6 +46,13 @@
   .header-title { font-weight: bold; font-size: 16px; margin-right: auto; letter-spacing: 0.5px; }
   .header-user { background: rgba(255,255,255,0.15); border-radius: 6px; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .header-user:hover { background: rgba(255,255,255,0.25); }
+
+  /* SYNC STATUS BADGE */
+  .sync-badge { display: inline-flex; align-items:center; gap:5px; background: rgba(255,255,255,0.15); border-radius:6px; padding:4px 10px; font-size:11px; margin-right:8px; }
+  .sync-dot { width:8px; height:8px; border-radius:50%; background:#4caf50; }
+  .sync-dot.syncing { background:#ffc107; animation: blink 0.8s infinite; }
+  .sync-dot.error { background:#f44336; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   .breadcrumb { padding: 8px 16px; font-size: 13px; color: #333; background: white; border-bottom: 1px solid var(--border); }
   .role-bar { background: #e3f2fd; border-bottom: 2px solid var(--blue); padding: 6px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: #084298; }
@@ -121,8 +123,10 @@
   .tag-item.manual { background: var(--yellow-bg); color: #6d4c00; border: 1px solid var(--yellow); }
   .tag-item .remove { cursor: pointer; font-size: 14px; line-height:1; }
 
-  /* MULTI-ITEM SẢN PHẨM */
-  .product-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+  /* MULTI-PRODUCT ROWS */
+  .product-row { background: #f8fff9; border: 1px solid #c3e6cb; border-radius: 6px; padding: 12px; margin-bottom: 10px; position: relative; }
+  .product-row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 600; color: var(--green); font-size: 13px; }
+  .product-row-body { display: grid; grid-template-columns: 1fr; gap: 8px; }
 
   /* TABS */
   .tabs { display: flex; border-bottom: 2px solid var(--green); margin-bottom: 15px; flex-wrap:wrap; }
@@ -137,28 +141,46 @@
   .bulk-row { display: flex; gap: 10px; padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 12px; align-items:center; }
   .bulk-row.valid { background:#f0fff4; } .bulk-row.error { background:#fff5f5; } .bulk-row.manual { background:#fffbf0; }
 
+  /* MASTER DATA */
   .import-master-card { background:white; border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:14px; position:relative; }
   .import-master-card h4 { color:var(--green); margin-bottom:8px; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .import-master-card .col-hint { background:#f8f9fa; border:1px solid #e0e0e0; border-radius:4px; padding:8px 12px; font-size:11.5px; color:#555; margin-bottom:10px; }
+  .import-master-card .col-hint span { display:inline-block; background:#e3f2fd; color:#1565c0; padding:2px 8px; border-radius:3px; margin:2px; font-weight:600; }
+  .data-stats { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .stat-chip { background:var(--green-bg); color:#155724; border:1px solid #c3e6cb; border-radius:15px; padding:4px 12px; font-size:12px; font-weight:600; }
+  .dl-master-btn { position:absolute; top:16px; right:16px; }
+
+  /* GOOGLE SHEETS CONFIG */
+  .sheets-config-card { background: #e8f4f8; border: 1px solid #90caf9; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .sheets-config-card h4 { color: #1565c0; margin-bottom: 10px; font-size: 14px; }
+  .sheets-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .sheets-status.connected { background: #e8f5e9; color: #2e7d32; }
+  .sheets-status.disconnected { background: #fff3e0; color: #e65100; }
 
   .toast-container { position: fixed; top: 60px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
   .toast { padding: 12px 20px; border-radius: 6px; color: white; font-weight: 600; box-shadow: var(--shadow); animation: slideIn 0.3s; min-width:200px; }
   .toast.success { background: var(--green); } .toast.error { background: var(--red); } .toast.warning { background: var(--orange); color:white; }
   @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
-  .hidden { display: none !important; }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+  .footer { text-align: center; padding: 12px; background: #e9ecef; color: #666; font-size: 12px; margin-top: auto; }
+  .empty-state { text-align:center; padding:50px 20px; color:#aaa; }
+  .empty-state .icon { font-size:48px; margin-bottom:12px; }
+
+  /* MANUAL LIST */
+  .manual-list-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .manual-list-table th { background:#fff3cd; padding:6px 8px; text-align:left; border:1px solid #ffe082; }
+  .manual-list-table td { padding:6px 8px; border:1px solid #fff3cd; }
+  .manual-notice { background:#fff8e1; border:1px solid #ffc107; border-radius:6px; padding:10px 14px; margin-top:10px; font-size:12px; color:#6d4c00; line-height:1.6; display:none; }
+  .manual-notice.show { display:block; }
 </style>
 </head>
 <body>
 
-<!-- MÀN HÌNH LOADING -->
-<div id="globalLoader">
-  <div class="spinner"></div>
-  <div id="loaderText" style="font-weight:bold; color:var(--green);">Đang kết nối Database...</div>
-</div>
-
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- MÀN HÌNH ĐĂNG NHẬP -->
-<div id="loginOverlay" class="hidden">
+<!-- ===== LOGIN OVERLAY ===== -->
+<div id="loginOverlay">
   <div class="login-box">
     <div style="text-align:center; margin-bottom:16px;">
       <div style="font-size:40px;">🦅</div>
@@ -175,66 +197,44 @@
       </select>
     </div>
 
-    <!-- Group QLTP -->
-    <div id="grpQLTP" class="hidden">
+    <div id="grpQLTP" style="display:none;">
       <div class="form-group">
         <label>Mã QLTP của bạn</label>
         <div class="login-input-wrap">
-          <input type="text" id="loginCodeQLTP" class="form-control" placeholder="VD: QLTP01" autocomplete="off"
-            oninput="suggestQLTP(this.value)" onfocus="suggestQLTP(this.value)">
+          <input type="text" id="loginCodeQLTP" class="form-control" placeholder="VD: 27506" autocomplete="off"
+            oninput="suggestQLTP(this.value)" onkeydown="if(event.key==='Enter') handleLogin()">
           <div class="login-suggest hidden" id="qltpSuggest"></div>
         </div>
-      </div>
-      <div class="form-group">
-        <label>Mật khẩu</label>
-        <input type="password" id="loginPassQLTP" class="form-control" placeholder="Mật khẩu QLTP" onkeydown="if(event.key==='Enter') handleLogin()">
+        <div id="qltpConfirm" style="margin-top:8px; display:none;">
+          <div style="background:#e8f5e9; border:1px solid #c3e6cb; border-radius:6px; padding:8px 12px; color:#155724; font-weight:600; font-size:13px;">
+            ✅ Xác nhận: <span id="qltpConfirmText"></span>
+          </div>
+        </div>
       </div>
       <button class="btn-login" onclick="handleLogin()">VÀO HỆ THỐNG →</button>
     </div>
 
-    <!-- Group Admin -->
-    <div id="grpAdmin" class="hidden">
+    <div id="grpAdmin" style="display:none;">
       <div class="form-group">
         <label>Mật khẩu Admin</label>
-        <input type="password" id="loginPassAdmin" class="form-control" placeholder="Nhập mật khẩu Admin" onkeydown="if(event.key==='Enter') handleLogin()">
+        <input type="password" id="loginPassAdmin" class="form-control" placeholder="Nhập mật khẩu" onkeydown="if(event.key==='Enter') handleLogin()">
       </div>
       <button class="btn-login" onclick="handleLogin()">ĐĂNG NHẬP →</button>
     </div>
+
+    <div class="login-hint" id="loginHint" style="display:none;"></div>
   </div>
 </div>
 
-<!-- ĐỔI MẬT KHẨU BẮT BUỘC -->
-<div class="modal-overlay hidden" id="forcePassModal">
-  <div class="modal" style="width:400px;">
-    <div class="modal-header"><h3>🔑 Đổi mật khẩu bắt buộc</h3></div>
-    <div class="modal-body">
-      <p style="color:#e65100; font-size:12px; margin-bottom:15px;">Bạn đang dùng mật khẩu mặc định (1). Vui lòng đổi mật khẩu mới để bảo mật.</p>
-      <div class="form-group"><label>Mật khẩu mới</label><input type="password" id="newPass" class="form-control"></div>
-    </div>
-    <div class="modal-footer"><button class="btn btn-primary" onclick="submitForcePass()">Lưu & Vào hệ thống</button></div>
-  </div>
-</div>
-
-<!-- ĐỔI MẬT KHẨU ADMIN -->
-<div class="modal-overlay hidden" id="changePassModal">
-  <div class="modal" style="width:400px;">
-    <div class="modal-header"><h3>🔑 Đổi mật khẩu Admin</h3><button class="modal-close" onclick="closeModal('changePassModal')">×</button></div>
-    <div class="modal-body">
-      <div class="form-group"><label>Mật khẩu cũ</label><input type="password" id="cpOld" class="form-control"></div>
-      <div class="form-group"><label>Mật khẩu mới</label><input type="password" id="cpNew" class="form-control"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" onclick="submitChangePass()">Lưu</button>
-      <button class="btn btn-secondary" onclick="closeModal('changePassModal')">Hủy</button>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN APP GIAO DIỆN -->
+<!-- ===== APP CONTAINER ===== -->
 <div id="appContainer" class="blurred">
   <div class="header">
     <span class="header-logo">🦅</span>
     <div class="header-title">BHX - KHAI BÁO BIỆT KÍCH</div>
+    <div class="sync-badge" id="syncBadge" title="Trạng thái đồng bộ Google Sheets">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncText">Offline</span>
+    </div>
     <div class="header-user" onclick="openChangePassModal()">
       <span style="font-size:18px;">👤</span>
       <span id="headerUserName">...</span>
@@ -249,12 +249,13 @@
   </div>
 
   <div class="main">
+    <!-- FILTER -->
     <div class="filter-area">
       <div class="filter-row">
         <div class="filter-group">
           <label>Tìm Siêu thị</label>
           <div class="search-drop-wrap" style="width: 220px;">
-            <input type="text" id="filterSieuthi" placeholder="Gõ Mã hoặc Tên ST..." class="form-control" autocomplete="off" 
+            <input type="text" id="filterSieuthi" placeholder="Gõ Mã hoặc Tên ST..." class="form-control" autocomplete="off"
               onfocus="filterDrop('filterST', this.value)" oninput="filterDrop('filterST', this.value)">
             <div class="dropdown-list hidden" id="dropFilterst-list"></div>
           </div>
@@ -273,32 +274,32 @@
         <div class="filter-group" style="justify-content:flex-end;">
           <label>&nbsp;</label>
           <div style="display:flex;gap:6px;">
-            <button class="btn btn-search" onclick="loadTable()">🔍 Lọc dữ liệu</button>
+            <button class="btn btn-search" onclick="loadTable()">🔍 Lọc</button>
             <button class="btn btn-primary" id="btnTaoMoi" onclick="openCreateModal()">➕ Tạo mới</button>
+            <button class="btn btn-sm" style="background:#17a2b8;color:white;" onclick="syncFromSheets()" title="Tải dữ liệu mới từ Google Sheets">🔄 Sync</button>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- ACTION BAR -->
     <div class="action-bar">
       <button class="btn btn-export" onclick="exportExcel()">📥 Export (.xlsx)</button>
-      <button class="btn btn-import" id="btnImportKhaiBao" onclick="openImportModal('khaibao')">📤 Import Khai Báo</button>
-      <a href="#" class="btn-link" id="btnDownloadTemplate" onclick="downloadTemplateExcel()">⬇ Tải Form Khai Báo Mẫu</a>
-      
-      <!-- Nút xóa cho QLTP & Admin -->
-      <button class="btn btn-danger hidden" id="btnBulkDelete" onclick="bulkDeleteRecords()">🗑 Xóa đã chọn</button>
-      
+      <button class="btn btn-import" id="btnImportKhaiBao" onclick="openImportModal()">📤 Import Khai Báo</button>
+      <a href="#" class="btn-link" onclick="downloadTemplateExcel()">⬇ Tải Form Mẫu</a>
+      <button class="btn btn-danger" id="btnBulkDelete" style="display:none;" onclick="bulkDeleteRecords()">🗑 Xóa đã chọn</button>
+
       <div style="margin-left:auto; display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="openHistoryModal()">📜 Lịch Sử</button>
-        <!-- Nút cho Admin quản lý và duyệt -->
-        <div id="adminButtons" class="hidden" style="display:none; gap:6px;">
-          <button class="btn btn-success btn-sm" onclick="bulkApprove()">✅ Duyệt đã chọn</button>
-          <button class="btn btn-danger btn-sm" onclick="bulkReject()">❌ Từ chối đã chọn</button>
-          <button class="btn btn-warning btn-sm" style="color:black;" onclick="openMasterDataModal()">⚙ Quản lý Master Data</button>
+        <button class="btn btn-sm" style="background:#ff6f00;color:white;" onclick="openManualListModal()">⚠ DS Nhập Tay</button>
+        <!-- ADMIN ONLY BUTTONS -->
+        <div id="adminButtons" style="display:none; gap:6px;">
+          <button class="btn btn-warning btn-sm" style="color:black;" onclick="openMasterDataModal()">⚙ Master Data</button>
         </div>
       </div>
     </div>
 
+    <!-- TABLE -->
     <div class="table-area">
       <div style="padding:8px 16px; background:#f8f9fa; border-bottom:1px solid #ddd; display:flex; align-items:center; gap:8px;">
         <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
@@ -312,10 +313,12 @@
             <tr>
               <th style="width:36px; text-align:center;"></th>
               <th>#</th>
-              <th>Người Khai Báo</th>
+              <th>QLTP</th>
               <th>Siêu thị</th>
-              <th>Ngày & Giờ (24h)</th>
-              <th>Sản phẩm Khai báo</th>
+              <th>Ngày BK</th>
+              <th>Giờ (24h)</th>
+              <!-- [CHANGED] Cột "Sản phẩm" thay bằng "DS Sản phẩm" để hỗ trợ multi-product -->
+              <th>DS Sản phẩm</th>
               <th>DS Nhân viên</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
@@ -330,7 +333,24 @@
   <div class="footer">Mọi vấn đề xin liên hệ <strong>Hải Phú - 268789</strong> qua BCNB</div>
 </div>
 
-<!-- MODAL TẠO/SỬA KHAI BÁO -->
+<!-- ===== MODALS ===== -->
+
+<!-- CHANGE PASS (Admin only) -->
+<div class="modal-overlay hidden" id="changePassModal">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header"><h3>🔑 Đổi mật khẩu Admin</h3><button class="modal-close" onclick="closeModal('changePassModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Mật khẩu cũ</label><input type="password" id="cpOld" class="form-control"></div>
+      <div class="form-group"><label>Mật khẩu mới</label><input type="password" id="cpNew" class="form-control"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="submitChangePass()">Lưu</button>
+      <button class="btn btn-secondary" onclick="closeModal('changePassModal')">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE / EDIT MODAL -->
 <div class="modal-overlay hidden" id="createModal">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -338,32 +358,37 @@
       <button class="modal-close" onclick="closeModal('createModal')">×</button>
     </div>
     <div class="modal-body">
-      <input type="hidden" id="editId">
-      
+      <!-- Siêu thị -->
       <div class="form-group">
         <label>Siêu thị <span style="color:red">*</span></label>
         <div class="search-drop-wrap" id="dropSieuthi">
-          <input class="search-drop-input" id="inputSieuthi" type="text" placeholder="Gõ Mã hoặc Tên ST..." autocomplete="off"
+          <input class="search-drop-input" id="inputSieuthi" type="text" placeholder="Gõ mã hoặc tên siêu thị..." autocomplete="off"
             oninput="filterDrop('sieuthi',this.value)" onfocus="filterDrop('sieuthi',this.value)">
           <div class="dropdown-list hidden" id="dropSieuthi-list"></div>
+          <div class="selected-tags" id="sieuthiSelected"></div>
         </div>
       </div>
-      
+
+      <!-- Ngày & Giờ -->
       <div class="form-row-3">
-        <div class="form-group"><label>Ngày Khai Báo <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
-        <div class="form-group"><label>Từ giờ <small>(24h)</small> <span style="color:red">*</span></label><input type="time" id="formTuGio" class="form-control"></div>
-        <div class="form-group"><label>Đến giờ <small>(24h)</small> <span style="color:red">*</span></label><input type="time" id="formDenGio" class="form-control"></div>
+        <div class="form-group"><label>Ngày Biệt Kích <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
+        <!-- [CHANGED] input type="time" → 24h mặc định, step=60 phút -->
+        <div class="form-group"><label>Từ giờ <small>(05:00–22:00)</small></label><input type="time" id="formTuGio" min="05:00" max="22:00" step="60" class="form-control"></div>
+        <div class="form-group"><label>Đến giờ <small>(05:00–22:00)</small></label><input type="time" id="formDenGio" min="05:00" max="22:00" step="60" class="form-control"></div>
       </div>
 
-      <!-- KHOẢNG NHẬP NHIỀU SẢN PHẨM -->
-      <div class="form-group" style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid var(--border);">
-        <label>Sản phẩm Biệt kích <span style="color:red">*</span> <small style="color:#888;">(Có thể nhập nhiều SP)</small></label>
-        <div id="productRowsContainer"></div>
-        <button class="btn btn-secondary btn-sm" onclick="addProductRow()">➕ Thêm sản phẩm</button>
-      </div>
-
+      <!-- [NEW] MULTI-PRODUCT SECTION -->
       <div class="form-group">
-        <label>DS Nhân viên áp dụng <span style="color:red">*</span> <small style="color:#888;">(Gõ Mã hoặc Tên NV)</small></label>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <label style="margin:0;">Danh sách Sản phẩm <span style="color:red">*</span></label>
+          <button class="btn btn-success btn-sm" type="button" onclick="addProductRow()">➕ Thêm sản phẩm</button>
+        </div>
+        <div id="productRowsContainer"></div>
+      </div>
+
+      <!-- Nhân viên -->
+      <div class="form-group">
+        <label>DS Nhân viên áp dụng <span style="color:red">*</span></label>
         <div class="search-drop-wrap" id="dropNhanvien">
           <input class="search-drop-input" id="inputNhanvien" type="text" placeholder="Gõ mã NV hoặc tên..." autocomplete="off"
             oninput="filterDrop('nhanvien',this.value)" onfocus="filterDrop('nhanvien',this.value)">
@@ -371,21 +396,27 @@
           <div class="selected-tags" id="nhanvienSelected"></div>
         </div>
       </div>
+
+      <div class="manual-notice" id="manualNotice">
+        ⚠️ <strong>Bạn đang có dữ liệu nhập tay!</strong><br>
+        Sau khi lưu xong, vui lòng vào <strong>"DS Nhập Tay"</strong> → sao chép nội dung → gửi cho
+        <strong>Hải Phú - 268789</strong> qua <strong>BCNB</strong> để được cập nhật chính thức.
+      </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-primary" onclick="submitForm()">💾 Lưu Thông Tin</button>
+      <button class="btn btn-primary" onclick="submitForm()">💾 Lưu & Gửi Duyệt</button>
       <button class="btn btn-secondary" onclick="closeModal('createModal')">Đóng</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL IMPORT EXCEL -->
+<!-- IMPORT MODAL -->
 <div class="modal-overlay hidden" id="importModal">
   <div class="modal modal-xl">
-    <div class="modal-header"><h3 id="importModalTitle">📤 Import Excel</h3><button class="modal-close" onclick="closeModal('importModal')">×</button></div>
+    <div class="modal-header"><h3>📤 Import Khai Báo (.xlsx)</h3><button class="modal-close" onclick="closeModal('importModal')">×</button></div>
     <div class="modal-body">
       <div style="background:#e8f4f8; padding:10px; border-left:4px solid var(--blue); margin-bottom:15px;">
-        Cột bắt buộc: <b>Siêu thị | Ngày (DD/MM/YYYY) | Từ giờ | Đến giờ | Mã SP | Tên SP | DS NV (cách nhau dấu ;)</b>
+        Cột: <b>Siêu thị | Ngày (DD/MM/YYYY) | Từ giờ (HH:MM) | Đến giờ (HH:MM) | Mã SP;Mã SP2... | Tên SP;Tên SP2... | DS NV (cách nhau ;)</b>
       </div>
       <div class="upload-zone" onclick="document.getElementById('fileImportInput').click()">
         <input type="file" id="fileImportInput" accept=".xlsx,.xls" style="display:none" onchange="handleExcelUpload(event)">
@@ -401,53 +432,153 @@
   </div>
 </div>
 
-<!-- MODAL MASTER DATA (CHỈ ADMIN) -->
+<!-- MASTER DATA MODAL (Admin only) -->
 <div class="modal-overlay hidden" id="masterDataModal">
   <div class="modal modal-xl">
     <div class="modal-header">
-      <h3>⚙ Quản lý Master Data (Dành cho Admin)</h3>
+      <h3>⚙ Master Data & Import</h3>
       <button class="modal-close" onclick="closeModal('masterDataModal')">×</button>
     </div>
     <div class="modal-body">
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchMasterTab('users')">👤 Tài khoản QLTP</button>
-        <button class="tab-btn" onclick="switchMasterTab('sieuthi')">🏪 Siêu thị</button>
-        <button class="tab-btn" onclick="switchMasterTab('sanpham')">📦 Sản phẩm</button>
-        <button class="tab-btn" onclick="switchMasterTab('nhanvien')">👥 Nhân viên</button>
+        <button class="tab-btn active" onclick="switchMasterTab('importData')">📥 Import Data</button>
+        <button class="tab-btn" onclick="switchMasterTab('sheetsConfig')">🔗 Google Sheets</button>
+        <button class="tab-btn" onclick="switchMasterTab('users')">👤 Quản lý User (<span id="countUsers">0</span>)</button>
+        <button class="tab-btn" onclick="switchMasterTab('sieuthi')">🏪 Siêu thị (<span id="countSieuthi">0</span>)</button>
+        <button class="tab-btn" onclick="switchMasterTab('sanpham')">📦 Sản phẩm (<span id="countSanpham">0</span>)</button>
+        <button class="tab-btn" onclick="switchMasterTab('nhanvien')">👥 Nhân viên (<span id="countNhanvien">0</span>)</button>
       </div>
 
-      <div id="masterTabUsers" class="tab-content active">
-        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
-          <input type="text" id="newQltpCode" class="form-control" placeholder="Mã QLTP (VD: 27506)" style="width:150px;">
-          <input type="text" id="newQltpName" class="form-control" placeholder="Họ Tên QLTP" style="flex:1;">
-          <button class="btn btn-success" onclick="addMasterUser()">➕ Tạo Tài khoản</button>
+      <!-- Tab: Import Data -->
+      <div id="masterTabImportData" class="tab-content active">
+        <div class="import-master-card">
+          <a href="#" class="btn-link dl-master-btn" onclick="dlMasterTpl('phanbo')">⬇ Tải Mẫu</a>
+          <h4>🏪 File Phân Bổ (QLTP + Siêu Thị)</h4>
+          <div class="col-hint">Cột cần thiết: <span>MST</span> <span>Tên ST</span> <span>QLTP tháng 4.2026 (tên rút gọn)</span><br><small>📌 Format cột QLTP: <strong>[Mã] - [Tên]</strong> (VD: 27506 - Bá Thành)</small></div>
+          <div class="data-stats"><span class="stat-chip" id="statQLTP">QLTP: 0</span><span class="stat-chip" id="statST">Siêu thị: 0</span></div>
+          <div style="margin-top:10px;"><label class="btn btn-import btn-sm" style="cursor:pointer;margin:0;">📂 Chọn File Phân Bổ <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('phanbo', this)"></label><span id="statusPhanBo" style="font-size:12px;color:#888;margin-left:8px;"></span></div>
+        </div>
+        <div class="import-master-card">
+          <a href="#" class="btn-link dl-master-btn" onclick="dlMasterTpl('fmcg')">⬇ Tải Mẫu</a>
+          <h4>🛒 File Sản Phẩm FMCG</h4>
+          <div class="col-hint">Cột cần thiết: <span>Mã sản phẩm</span> <span>Tên sản phẩm</span></div>
+          <div class="data-stats"><span class="stat-chip" id="statFMCG">SP FMCG: 0</span></div>
+          <div style="margin-top:10px;"><label class="btn btn-import btn-sm" style="cursor:pointer;margin:0;">📂 Chọn File FMCG <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('fmcg', this)"></label><span id="statusFMCG" style="font-size:12px;color:#888;margin-left:8px;"></span></div>
+        </div>
+        <div class="import-master-card">
+          <a href="#" class="btn-link dl-master-btn" onclick="dlMasterTpl('nhanvien')">⬇ Tải Mẫu</a>
+          <h4>👥 File Danh Sách Nhân Viên</h4>
+          <div class="col-hint">Cột cần thiết: <span>Mã Nhân Viên</span> <span>Tên Nhân Viên</span> <span>Mã Siêu Thị</span><br><small>📌 Dòng tiêu đề ở hàng 4</small></div>
+          <div class="data-stats"><span class="stat-chip" id="statNV">NV: 0</span></div>
+          <div style="margin-top:10px;"><label class="btn btn-import btn-sm" style="cursor:pointer;margin:0;">📂 Chọn File Nhân Viên <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('nhanvien', this)"></label><span id="statusNV" style="font-size:12px;color:#888;margin-left:8px;"></span></div>
+        </div>
+        <div style="background:#fff3cd;border-radius:6px;padding:12px;font-size:12px;color:#856404;">
+          💡 Data được lưu vào <b>IndexedDB</b> (local). Sau khi import, nếu đã cấu hình Google Sheets, hấn <b>"Đẩy Master Data lên Sheets"</b> để đồng bộ.
+        </div>
+      </div>
+
+      <!-- [NEW] Tab: Google Sheets Config -->
+      <div id="masterTabSheetsConfig" class="tab-content">
+        <div class="sheets-config-card">
+          <h4>🔗 Kết nối Google Sheets</h4>
+          <p style="font-size:12px;color:#555;margin-bottom:12px;">Dữ liệu khai báo sẽ được đồng bộ lên Google Sheets để tất cả user cùng xem.</p>
+          <div class="form-group">
+            <label>Spreadsheet ID</label>
+            <input type="text" id="cfgSheetId" class="form-control" placeholder="Lấy từ URL: .../spreadsheets/d/[ID]/edit">
+          </div>
+          <div class="form-group">
+            <label>API Key (Google Sheets API v4)</label>
+            <input type="text" id="cfgApiKey" class="form-control" placeholder="AIza...">
+          </div>
+          <div class="form-group">
+            <label>Web App URL (Google Apps Script) — Dùng để ghi/xóa dữ liệu</label>
+            <input type="text" id="cfgWebAppUrl" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn btn-primary" onclick="saveSheetConfig()">💾 Lưu cấu hình</button>
+            <button class="btn btn-success" onclick="testSheetConnection()">🔌 Test kết nối</button>
+          </div>
+          <div id="sheetTestResult" style="margin-top:10px;font-size:12px;"></div>
+        </div>
+
+        <!-- Hướng dẫn setup -->
+        <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:16px;">
+          <h4 style="margin-bottom:12px;color:#333;">📖 Hướng dẫn Setup (từng bước)</h4>
+          <div style="font-size:12px;line-height:2;color:#444;">
+            <b>BƯỚC 1 — Tạo Google Sheet</b><br>
+            Vào <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> → Tạo spreadsheet mới.<br>
+            Tạo các sheet (tab) với tên chính xác: <code>declarations</code> | <code>sieuthi</code> | <code>sanpham</code> | <code>nhanvien</code> | <code>qltp</code><br><br>
+
+            <b>BƯỚC 2 — Lấy Spreadsheet ID</b><br>
+            Từ URL: <code>https://docs.google.com/spreadsheets/d/<b style="color:red">[ID Ở ĐÂY]</b>/edit</code><br>
+            Copy phần ID và dán vào ô "Spreadsheet ID" bên trên.<br><br>
+
+            <b>BƯỚC 3 — Tạo API Key (chỉ dùng để ĐỌC)</b><br>
+            Vào <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → Tạo project → Enable <b>Google Sheets API</b> →
+            <b>Credentials</b> → <b>Create API Key</b> → Restrict: Sheets API.<br>
+            ⚠️ Sheet cần <b>Share → Anyone with link → Viewer</b>.<br><br>
+
+            <b>BƯỚC 4 — Tạo Apps Script (để GHI dữ liệu)</b><br>
+            Trong Sheet → menu <b>Extensions → Apps Script</b> → xóa code cũ → dán code từ nút bên dưới → <b>Deploy → New deployment → Web App → Execute as: Me → Who has access: Anyone</b> → Copy URL dán vào "Web App URL".<br><br>
+
+            <b>BƯỚC 5 — Đặt quyền Sheet Public (Read)</b><br>
+            Sheet → Share → Change to "Anyone with the link can view".<br>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="copyAppsScriptCode()">📋 Copy Apps Script Code</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Users -->
+      <div id="masterTabUsers" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;background:#f8f9fa;padding:8px;border-radius:6px;border:1px solid #ddd;">
+          <input type="text" id="searchUsers" class="form-control" placeholder="🔍 Tìm kiếm User..." oninput="renderMasterList('users')" style="flex:1;min-width:200px;border-color:var(--blue);">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="newUserCode" class="form-control" placeholder="Mã QLTP (27506)" style="width:160px;">
+          <input type="text" id="newUserName" class="form-control" placeholder="Họ Tên" style="flex:1;min-width:120px;">
+          <button class="btn btn-success" onclick="addMasterUser()">➕ Thêm QLTP</button>
         </div>
         <div id="masterUsersList" style="max-height:400px;overflow-y:auto;"></div>
       </div>
 
+      <!-- Tab: Siêu thị -->
       <div id="masterTabSieuthi" class="tab-content">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newSieuthiCode" class="form-control" placeholder="Mã ST" style="width:120px;">
-          <input type="text" id="newSieuthiName" class="form-control" placeholder="Tên siêu thị" style="flex:1;">
-          <input type="text" id="newSieuthiQLTP" class="form-control" placeholder="Mã QLTP Quản lý" style="width:150px;">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;background:#f8f9fa;padding:8px;border-radius:6px;border:1px solid #ddd;">
+          <input type="text" id="searchSieuthi" class="form-control" placeholder="🔍 Tìm Siêu thị..." oninput="renderMasterList('sieuthi')" style="flex:1;min-width:200px;border-color:var(--blue);">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <input type="text" id="newSieuthiCode" class="form-control" placeholder="Mã MST" style="width:100px;">
+          <input type="text" id="newSieuthiName" class="form-control" placeholder="Tên siêu thị" style="flex:1;min-width:120px;">
+          <input type="text" id="newSieuthiQLTP" class="form-control" placeholder="Mã QLTP" style="width:100px;">
           <button class="btn btn-success" onclick="addMasterItem('sieuthi')">➕ Thêm</button>
         </div>
         <div id="masterSieuthiList" style="max-height:400px;overflow-y:auto;"></div>
       </div>
 
+      <!-- Tab: Sản phẩm -->
       <div id="masterTabSanpham" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;background:#f8f9fa;padding:8px;border-radius:6px;border:1px solid #ddd;">
+          <input type="text" id="searchSanpham" class="form-control" placeholder="🔍 Tìm Sản phẩm..." oninput="renderMasterList('sanpham')" style="flex:1;min-width:200px;border-color:var(--blue);">
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="newSanphamCode" class="form-control" placeholder="Mã SP" style="width:140px;">
+          <input type="text" id="newSanphamCode" class="form-control" placeholder="Mã SP" style="width:160px;">
           <input type="text" id="newSanphamName" class="form-control" placeholder="Tên sản phẩm" style="flex:1;">
           <button class="btn btn-success" onclick="addMasterItem('sanpham')">➕ Thêm</button>
         </div>
         <div id="masterSanphamList" style="max-height:400px;overflow-y:auto;"></div>
       </div>
 
+      <!-- Tab: Nhân viên -->
       <div id="masterTabNhanvien" class="tab-content">
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;background:#f8f9fa;padding:8px;border-radius:6px;border:1px solid #ddd;">
+          <input type="text" id="searchNhanvien" class="form-control" placeholder="🔍 Tìm Nhân viên..." oninput="renderMasterList('nhanvien')" style="flex:1;min-width:200px;border-color:var(--blue);">
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
           <input type="text" id="newNhanvienCode" class="form-control" placeholder="Mã NV" style="width:140px;">
           <input type="text" id="newNhanvienName" class="form-control" placeholder="Tên nhân viên" style="flex:1;">
+          <input type="text" id="newNhanvienST" class="form-control" placeholder="Mã Siêu Thị" style="width:120px;">
           <button class="btn btn-success" onclick="addMasterItem('nhanvien')">➕ Thêm</button>
         </div>
         <div id="masterNhanvienList" style="max-height:400px;overflow-y:auto;"></div>
@@ -457,7 +588,16 @@
   </div>
 </div>
 
-<!-- LÝ DO TỪ CHỐI MODAL -->
+<!-- DETAIL MODAL -->
+<div class="modal-overlay hidden" id="detailModal">
+  <div class="modal modal-lg">
+    <div class="modal-header"><h3>🔍 Chi tiết đợt Biệt Kích</h3><button class="modal-close" onclick="closeModal('detailModal')">×</button></div>
+    <div class="modal-body" id="detailModalBody"></div>
+    <div class="modal-footer" id="detailModalFooter"></div>
+  </div>
+</div>
+
+<!-- REJECT MODAL -->
 <div class="modal-overlay hidden" id="rejectModal">
   <div class="modal" style="width:400px;">
     <div class="modal-header"><h3>❌ Lý do từ chối</h3><button class="modal-close" onclick="closeModal('rejectModal')">×</button></div>
@@ -469,532 +609,42 @@
   </div>
 </div>
 
-<!-- LỊCH SỬ THAO TÁC -->
+<!-- HISTORY MODAL -->
 <div class="modal-overlay hidden" id="historyModal">
   <div class="modal modal-lg">
     <div class="modal-header"><h3>📜 Lịch sử thao tác</h3><button class="modal-close" onclick="closeModal('historyModal')">×</button></div>
     <div class="modal-body" style="padding:0; max-height:500px; overflow-y:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead style="background:#f5f5f5; position:sticky; top:0;">
-          <tr><th style="padding:8px;text-align:left;">Thời gian</th><th style="padding:8px;text-align:left;">User</th><th style="padding:8px;text-align:left;">Thao tác</th><th style="padding:8px;text-align:left;">Chi tiết</th></tr>
+          <tr><th style="padding:8px;">Thời gian</th><th style="padding:8px;">User</th><th style="padding:8px;">Thao tác</th><th style="padding:8px;">Chi tiết</th></tr>
         </thead>
         <tbody id="historyBody"></tbody>
       </table>
     </div>
-    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('historyModal')">Đóng</button></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="btnClearHistory" onclick="clearHistory()" style="display:none;">Xóa lịch sử</button>
+      <button class="btn btn-secondary" onclick="closeModal('historyModal')">Đóng</button>
+    </div>
   </div>
 </div>
 
-
-<!-- JAVASCRIPT GẮN TRỰC TIẾP ĐỂ CHẠY ĐỒNG BỘ -->
-<script>
-// ============================================================
-// ⚠️ QUAN TRỌNG: COPY LINK WEB APP (GOOGLE APPS SCRIPT) CỦA BẠN DÁN VÀO ĐÂY:
-const API_URL = ""; 
-// ============================================================
-
-let RAM_DB = {};
-let currentUser = null, currentRole = null;
-let dropSel = { sieuthi: null, sanphams: [], nhanvien: [] };
-let filteredDeclarations = [];
-let selectedIds = new Set();
-let currentEditId = null;
-let rejectTargetId = null;
-let parsedBulkRows = [];
-
-function showLoader(txt = 'Đang tải...') { document.getElementById('loaderText').textContent = txt; document.getElementById('globalLoader').style.display = 'flex'; }
-function hideLoader() { document.getElementById('globalLoader').style.display = 'none'; }
-function toast(type, msg) { const c = document.getElementById('toastContainer'); const t = document.createElement('div'); t.className = 'toast '+type; t.textContent=msg; c.appendChild(t); setTimeout(()=>t.remove(), 3000); }
-function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-// ============================================================
-// CƠ CHẾ ĐỒNG BỘ GOOGLE SHEETS
-// ============================================================
-const DB = {
-  get: k => RAM_DB[k] ? JSON.parse(JSON.stringify(RAM_DB[k])) : null,
-  set: async (k, v) => {
-    RAM_DB[k] = v;
-    if (API_URL && API_URL.startsWith("http")) {
-      try {
-        fetch(API_URL, { 
-          method: 'POST', 
-          body: JSON.stringify({ key: k, value: v }),
-          headers: { "Content-Type": "text/plain;charset=utf-8" }
-        }).catch(e => console.log("Lỗi đồng bộ ngầm"));
-      } catch (e) {}
-    }
-  }
-};
-
-window.onload = async function() {
-  initSeedData();
-  
-  if (API_URL && API_URL.startsWith("http")) {
-    try {
-      const res = await fetch(API_URL);
-      if (res.ok) {
-        const serverData = await res.json();
-        if (serverData && Object.keys(serverData).length > 0) {
-          RAM_DB = serverData; 
-        }
-      }
-    } catch(e) {
-      toast('warning', 'Đang chạy chế độ Offline do chưa cắm API.');
-    }
-  }
-
-  hideLoader();
-  document.getElementById('loginOverlay').classList.remove('hidden');
-};
-
-function initSeedData() {
-  if(!RAM_DB['adminPass']) RAM_DB['adminPass'] = '24122004';
-  if(!RAM_DB['users']) RAM_DB['users'] = [{ code: 'QLTP01', name: 'Nguyễn Văn Tân', pass: '1' }];
-  if(!RAM_DB['sieuthi']) RAM_DB['sieuthi'] = [{ code: 'ST001', name: 'BHX Lê Văn Sỹ', qltpCode:'QLTP01'}, {code: 'ST002', name: 'BHX Nguyễn Trãi'}];
-  if(!RAM_DB['sanpham']) RAM_DB['sanpham'] = [{ code: 'SP001', name: 'Bia Tiger'}, {code: 'SP002', name: 'Mì Hảo Hảo'}];
-  if(!RAM_DB['nhanvien']) RAM_DB['nhanvien'] = [{ code: 'NV001', name: 'Nguyễn Văn A'}, {code: 'NV002', name: 'Trần Thị B'}];
-  if(!RAM_DB['declarations']) RAM_DB['declarations'] = [];
-  if(!RAM_DB['historyLog']) RAM_DB['historyLog'] = [];
-}
-
-function logAction(action, detail) {
-  let hist = DB.get('historyLog') || [];
-  hist.unshift({ time: new Date().toLocaleString('vi-VN'), user: currentUser ? `${currentUser.code} - ${currentUser.name}` : '?', action, detail });
-  if (hist.length > 200) hist.pop(); DB.set('historyLog', hist);
-}
-
-// ============================================================
-// LOGIN (ADMIN & QLTP)
-// ============================================================
-function toggleLoginFields() {
-  const r = document.getElementById('loginRole').value;
-  document.getElementById('grpQLTP').classList.toggle('hidden', r !== 'qltp');
-  document.getElementById('grpAdmin').classList.toggle('hidden', r !== 'admin');
-}
-
-function suggestQLTP(q) {
-  q = q.trim().toLowerCase();
-  const sg = document.getElementById('qltpSuggest');
-  if(!q) return sg.classList.add('hidden');
-  
-  const users = DB.get('users') || [];
-  const res = users.filter(x => String(x.code).toLowerCase().includes(q) || String(x.name).toLowerCase().includes(q)).slice(0,10);
-  sg.innerHTML = res.length ? res.map(x => `<div class="login-suggest-item" onclick="selectLoginQLTP('${x.code}')"><span class="mst">${x.code}</span><span class="name">${x.name}</span></div>`).join('') : '<div style="padding:10px;">Không tìm thấy</div>';
-  sg.classList.remove('hidden');
-}
-function selectLoginQLTP(code) { document.getElementById('loginCodeQLTP').value = code; document.getElementById('qltpSuggest').classList.add('hidden'); }
-
-function handleLogin() {
-  const r = document.getElementById('loginRole').value;
-  if (r === 'admin') {
-    const p = document.getElementById('loginPassAdmin').value;
-    if (p !== DB.get('adminPass')) return toast('error', 'Sai mật khẩu Admin!');
-    currentUser = { code: 'ADMIN', name: 'Quản trị hệ thống' }; currentRole = 'admin';
-    proceedLogin();
-  } else {
-    const c = document.getElementById('loginCodeQLTP').value.trim().toUpperCase();
-    const p = document.getElementById('loginPassQLTP').value;
-    if (!c || !p) return toast('error', 'Nhập mã và mật khẩu!');
-    
-    const users = DB.get('users') || [];
-    const u = users.find(x => x.code === c);
-    if (!u) return toast('error', `Tài khoản QLTP [${c}] không tồn tại!`);
-    if (u.pass !== p) return toast('error', 'Sai mật khẩu!');
-    
-    currentUser = u; currentRole = 'qltp';
-    if (p === '1') {
-      document.getElementById('loginOverlay').classList.add('hidden');
-      showModal('forcePassModal');
-    } else { proceedLogin(); }
-  }
-}
-
-async function submitForcePass() {
-  const np = document.getElementById('newPass').value;
-  if (!np || np.length < 3) return toast('error', 'Mật khẩu phải từ 3 ký tự!');
-  let users = DB.get('users') || [];
-  let idx = users.findIndex(x => x.code === currentUser.code);
-  if (idx > -1) { users[idx].pass = np; await DB.set('users', users); }
-  closeModal('forcePassModal'); proceedLogin();
-}
-
-function proceedLogin() {
-  document.getElementById('loginOverlay').classList.add('hidden');
-  document.getElementById('appContainer').classList.remove('blurred');
-  
-  const roleName = currentRole === 'admin' ? 'ADMIN' : 'QLTP';
-  document.getElementById('headerUserName').textContent = `${currentUser.code} - ${currentUser.name}`;
-  document.getElementById('roleStatusText').textContent = `Tài khoản hoạt động: ${roleName}`;
-  
-  // ADMIN thấy nút Quản lý, QLTP thấy nút Khai báo
-  const isAd = currentRole === 'admin';
-  document.getElementById('adminButtons').style.display = isAd ? 'flex' : 'none';
-  document.getElementById('btnAdminMaster').classList.toggle('hidden', !isAd);
-  document.getElementById('btnTaoMoi').classList.toggle('hidden', isAd);
-  document.getElementById('btnImportKhaiBao').classList.toggle('hidden', isAd);
-  
-  loadTable();
-}
-
-function logout() {
-  currentUser = null; currentRole = null;
-  document.getElementById('appContainer').classList.add('blurred');
-  document.getElementById('loginOverlay').classList.remove('hidden');
-  document.getElementById('loginPassAdmin').value = ''; document.getElementById('loginCodeQLTP').value = ''; document.getElementById('loginPassQLTP').value = '';
-}
-
-// ĐỔI MK (CHỈ ADMIN THẤY OPTION)
-function openChangePassModal() {
-  if(currentRole !== 'admin') return;
-  document.getElementById('cpOld').value=''; document.getElementById('cpNew').value=''; showModal('changePassModal');
-}
-function submitChangePass() {
-  const o = document.getElementById('cpOld').value, n = document.getElementById('cpNew').value;
-  if(o !== DB.get('adminPass')) return toast('error', 'Sai MK cũ!');
-  DB.set('adminPass', n); toast('success','Đã đổi MK Admin!'); closeModal('changePassModal');
-}
-
-// ============================================================
-// BẢNG (HIỂN THỊ DỮ LIỆU) & XÓA, DUYỆT
-// ============================================================
-function loadTable() {
-  let all = DB.get('declarations') || [];
-  if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
-  
-  const fST = document.getElementById('filterSieuthi').value.toLowerCase();
-  const fFr = document.getElementById('filterTuNgay').value;
-  const fTo = document.getElementById('filterDenNgay').value;
-  const fSt = document.getElementById('filterStatus').value;
-
-  filteredDeclarations = all.filter(d => {
-    const chuoiTimKiem = ((d.sieuthiCode||'') + ' ' + (d.sieuthiName||'')).toLowerCase();
-    if (fST && !chuoiTimKiem.includes(fST)) return false;
-    if (fFr && d.ngay < fFr) return false;
-    if (fTo && d.ngay > fTo) return false;
-    if (fSt && d.status !== fSt) return false;
-    return true; 
-  });
-
-  document.getElementById('totalCount').textContent = `Tổng: ${filteredDeclarations.length} đơn`;
-  const tbody = document.getElementById('tableBody');
-  if (!filteredDeclarations.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:#999;">Không có dữ liệu</td></tr>`; return; }
-
-  tbody.innerHTML = filteredDeclarations.map((d, i) => {
-    const checked = selectedIds.has(d.id) ? 'checked' : '';
-    const stTag = d.isManualSieuthi ? `⚠ ${d.sieuthiName}` : `${d.sieuthiCode} - ${d.sieuthiName}`;
-    const spHtml = (d.sanphams||[]).map(sp => sp.isManual ? `⚠ ${sp.name}` : `${sp.code} - ${sp.name}`).join('<br>');
-    const nvHtml = (d.nhanvienList||[]).map(n => n.isManual ? `⚠ ${n.name}` : `${n.code} - ${n.name}`).join('<br>');
-    
-    // Ngày giờ chuẩn 24h
-    let fDate = d.ngay.split('-').reverse().join('/');
-    let timeStr = `${fDate}<br><span style="color:#888;">${d.tuGio} - ${d.denGio}</span>`;
-    
-    let stat = { draft: '<span class="badge badge-pending">Nháp</span>', pending: '<span class="badge badge-pending">Chờ duyệt</span>', approved: '<span class="badge badge-approved">Đã duyệt</span>', rejected: '<span class="badge badge-rejected">Từ chối</span>' }[d.status];
-    
-    let acts = '';
-    // QLTP sửa/xóa khi đơn chưa duyệt
-    if (currentRole === 'qltp' && d.status === 'pending') {
-      acts = `<button class="btn btn-primary btn-sm" onclick="openEditModal('${d.id}')">✏ Sửa</button> 
-              <button class="btn btn-danger btn-sm" onclick="deleteRecord('${d.id}')">🗑 Xóa</button>`;
-    }
-    // Admin có quyền duyệt hoặc xóa bất cứ lúc nào
-    if (currentRole === 'admin') {
-      acts += `<button class="btn btn-danger btn-sm" onclick="deleteRecord('${d.id}')">🗑</button>`;
-    }
-
-    return `<tr>
-      <td style="text-align:center;"><input type="checkbox" ${checked} onchange="toggleSelect('${d.id}')"></td>
-      <td style="color:#999;">${i+1}</td>
-      <td style="font-weight:600;color:var(--green);">${d.authorCode} - ${d.authorName}</td>
-      <td style="font-weight:600;">${stTag}</td>
-      <td>${timeStr}</td>
-      <td style="font-size:12px;">${spHtml}</td>
-      <td style="font-size:12px;">${nvHtml}</td>
-      <td>${stat}</td>
-      <td style="white-space:nowrap;">${acts}</td>
-    </tr>`;
-  }).join('');
-}
-
-async function deleteRecord(id) {
-  if (!confirm('Xóa bản ghi này?')) return;
-  let d = DB.get('declarations') || [];
-  await DB.set('declarations', d.filter(x => x.id !== id));
-  logAction('XÓA', id); toast('success', 'Đã xóa!'); loadTable();
-}
-
-function toggleSelectAll() { const c = document.getElementById('selectAll').checked; document.querySelectorAll('#tableBody input[type=checkbox]').forEach(cb=>{cb.checked=c; let id=cb.getAttribute('onchange').match(/'([^']+)'/)[1]; c?selectedIds.add(id):selectedIds.delete(id);}); updateSelectedCount(); }
-function toggleSelect(id) { selectedIds.has(id) ? selectedIds.delete(id) : selectedIds.add(id); updateSelectedCount(); }
-function updateSelectedCount() { 
-  document.getElementById('selectedCount').textContent = selectedIds.size>0?`(${selectedIds.size})`:''; 
-  document.getElementById('btnBulkDelete').classList.toggle('hidden', selectedIds.size===0);
-}
-async function bulkDeleteRecords() { 
-  if(!confirm(`Xóa vĩnh viễn ${selectedIds.size} đơn đã chọn?`)) return; 
-  let d = DB.get('declarations')||[]; await DB.set('declarations', d.filter(x=>!selectedIds.has(x.id))); 
-  logAction('XÓA NHIỀU', `${selectedIds.size} đơn`); selectedIds.clear(); updateSelectedCount(); loadTable(); toast('success','Đã xóa'); 
-}
-
-// ADMIN DUYỆT ĐƠN (Vì không có role Ngành hàng nên Admin sẽ duyệt)
-function bulkApprove() {
-  if (selectedIds.size === 0) return toast('error', 'Chưa chọn đơn nào!');
-  let d = DB.get('declarations') || [];
-  d.forEach(x => { if(selectedIds.has(x.id) && x.status === 'pending') x.status = 'approved'; });
-  DB.set('declarations', d); logAction('DUYỆT ĐƠN', `${selectedIds.size} đơn`);
-  selectedIds.clear(); updateSelectedCount(); loadTable(); toast('success', 'Đã duyệt!');
-}
-function bulkReject() {
-  if (selectedIds.size === 0) return toast('error', 'Chưa chọn đơn nào!');
-  rejectTargetId = '__bulk__'; document.getElementById('rejectReasonInput').value=''; showModal('rejectModal');
-}
-function confirmReject() {
-  const rs = document.getElementById('rejectReasonInput').value; if(!rs) return toast('error','Nhập lý do!');
-  let d = DB.get('declarations') || [];
-  if (rejectTargetId === '__bulk__') { d.forEach(x => { if (selectedIds.has(x.id)) { x.status = 'rejected'; x.rejectReason = rs; }}); selectedIds.clear(); }
-  DB.set('declarations', d); logAction('TỪ CHỐI', rs); closeModal('rejectModal'); loadTable(); toast('warning','Đã từ chối');
-}
-
-
-// ============================================================
-// KHAI BÁO (TẠO/SỬA) MỚI
-// ============================================================
-function openCreateModal() {
-  currentEditId = null; dropSel = { sieuthi: null, sanphams: [], nhanvien: [] };
-  document.getElementById('inputSieuthi').value = ''; document.getElementById('formNgay').value = ''; document.getElementById('formTuGio').value = ''; document.getElementById('formDenGio').value = '';
-  document.getElementById('productRowsContainer').innerHTML = ''; addProductRow(); 
-  document.getElementById('nhanvienSelected').innerHTML = '';
-  document.getElementById('createModalTitle').textContent = '➕ Khai báo Biệt Kích'; showModal('createModal');
-}
-
-function openEditModal(id) {
-  const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return; currentEditId = id;
-  dropSel.sieuthi = { code: d.sieuthiCode, name: d.sieuthiName };
-  dropSel.sanphams = [...(d.sanphams||[])];
-  dropSel.nhanvien = [...(d.nhanvienList||[])];
-  
-  document.getElementById('inputSieuthi').value = `${d.sieuthiCode} - ${d.sieuthiName}`;
-  document.getElementById('formNgay').value = d.ngay; document.getElementById('formTuGio').value = d.tuGio; document.getElementById('formDenGio').value = d.denGio;
-  
-  const pCont = document.getElementById('productRowsContainer'); pCont.innerHTML = '';
-  if(d.sanphams && d.sanphams.length > 0) { d.sanphams.forEach(sp => addProductRow(`${sp.code} - ${sp.name}`)); } else { addProductRow(); }
-  
-  renderTags('nhanvien');
-  document.getElementById('createModalTitle').textContent = '✏ Sửa Khai báo'; showModal('createModal');
-}
-
-// Logic Dropdown
-function filterDrop(field, query) {
-  const q = String(query).toLowerCase().trim(); let items = DB.get(field) || [];
-  // QLTP chỉ thấy Siêu thị mà Admin gán cho họ
-  if (field === 'sieuthi' && currentRole === 'qltp') items = items.filter(s => s.qltpCode === currentUser.code);
-  items = items.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q)).slice(0, 15);
-
-  const listEl = document.getElementById(field==='filterST'?'dropFilterst-list':`drop${cap(field)}-list`);
-  let html = items.map(it => `<div class="dropdown-item" onmousedown="selectDropItem('${field}', '${it.code}', '${it.name}')"><span>${it.code} - ${it.name}</span></div>`).join('');
-  if (q && field !== 'filterST') html += `<div class="dropdown-item-manual" onmousedown="selectManualItem('${field}','${query}')">✍ Nhập tay: "${query}"</div>`;
-  
-  listEl.innerHTML = html || '<div style="padding:10px;color:#999;">Không có kết quả</div>';
-  listEl.classList.remove('hidden');
-}
-
-function selectDropItem(field, code, name) {
-  if (field === 'filterST') { document.getElementById('filterSieuthi').value = `${code} - ${name}`; document.getElementById('dropFilterst-list').classList.add('hidden'); loadTable(); return; }
-  
-  document.getElementById(`drop${cap(field)}-list`).classList.add('hidden');
-  if (field === 'nhanvien') {
-    document.getElementById('inputNhanvien').value = '';
-    if (!dropSel.nhanvien.find(n => n.code === code)) dropSel.nhanvien.push({ code, name, isManual:false });
-    renderTags('nhanvien');
-  } else {
-    dropSel[field] = { code, name, isManual:false }; document.getElementById(`input${cap(field)}`).value = `${code} - ${name}`;
-  }
-}
-
-function selectManualItem(field, txt) {
-  document.getElementById(`drop${cap(field)}-list`).classList.add('hidden');
-  if (field === 'nhanvien') {
-    document.getElementById('inputNhanvien').value = '';
-    dropSel.nhanvien.push({ id: null, code: '', name: txt, isManual: true });
-    renderTags('nhanvien');
-  } else {
-    dropSel[field] = { id: null, code: '', name: txt, isManual: true }; document.getElementById(`input${cap(field)}`).value = txt;
-  }
-}
-
-function renderTags(field) {
-  const cont = document.getElementById(`${field}Selected`);
-  if (field === 'nhanvien') {
-    cont.innerHTML = dropSel.nhanvien.map((n, i) => `<span class="tag-item">${n.isManual?'⚠':''} ${n.code?n.code+' - ':''}${n.name} <span class="remove" onmousedown="dropSel.nhanvien.splice(${i},1);renderTags('nhanvien')">×</span></span>`).join('');
-  }
-}
-
-// Logic Multi Sản Phẩm
-function addProductRow(val = '') {
-  const cont = document.getElementById('productRowsContainer');
-  const uid = Date.now().toString(36) + Math.random().toString(36).substr(2);
-  const div = document.createElement('div'); div.className = 'product-row';
-  div.innerHTML = `
-    <div class="search-drop-wrap">
-      <input type="text" class="form-control sp-input" placeholder="Gõ tìm Mã - Tên SP..." value="${val}"
-        oninput="filterMultiSP('${uid}', this.value)" onfocus="filterMultiSP('${uid}', this.value)">
-      <div class="dropdown-list hidden" id="drop-${uid}"></div>
+<!-- MANUAL LIST MODAL -->
+<div class="modal-overlay hidden" id="manualListModal">
+  <div class="modal modal-lg">
+    <div class="modal-header"><h3>⚠ Danh Sách Nhập Tay — Cần Gửi Admin</h3><button class="modal-close" onclick="closeModal('manualListModal')">×</button></div>
+    <div class="modal-body">
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px;margin-bottom:15px;font-size:13px;color:#856404;">
+        📋 <strong>Hướng dẫn:</strong> Copy nội dung bên dưới → gửi cho <strong>Hải Phú - 268789</strong> qua <strong>BCNB</strong>.
+      </div>
+      <div id="manualListContent"></div>
     </div>
-    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">🗑</button>
-  `;
-  cont.appendChild(div);
-}
+    <div class="modal-footer">
+      <button class="btn btn-warning" style="color:black;" onclick="copyManualList()">📋 Copy tất cả</button>
+      <button class="btn btn-secondary" onclick="closeModal('manualListModal')">Đóng</button>
+    </div>
+  </div>
+</div>
 
-function filterMultiSP(uid, query) {
-  const q = String(query).toLowerCase().trim(); let items = DB.get('sanpham') || [];
-  items = items.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q)).slice(0, 15);
-  let html = items.map(it => `<div class="dropdown-item" onmousedown="selectMultiSP('${uid}', '${it.code}', '${it.name}')"><span>${it.code} - ${it.name}</span></div>`).join('');
-  if (q) html += `<div class="dropdown-item-manual" onmousedown="document.getElementById('drop-${uid}').previousElementSibling.value='${query}'; document.getElementById('drop-${uid}').classList.add('hidden');">✍ Nhập tay: "${query}"</div>`;
-  
-  const listEl = document.getElementById(`drop-${uid}`);
-  listEl.innerHTML = html || '<div style="padding:10px;color:#999;">Không có kết quả</div>';
-  listEl.classList.remove('hidden');
-}
-
-function selectMultiSP(uid, code, name) {
-  document.getElementById(`drop-${uid}`).previousElementSibling.value = `${code} - ${name}`;
-  document.getElementById(`drop-${uid}`).classList.add('hidden');
-}
-
-document.addEventListener('click', e => { document.querySelectorAll('.dropdown-list').forEach(l => { if(!l.parentElement.contains(e.target)) l.classList.add('hidden'); }); });
-
-async function submitForm() {
-  const stRaw = document.getElementById('inputSieuthi').value;
-  if (!stRaw) return toast('error', 'Chọn Siêu thị!');
-  let stCode = '', stName = stRaw;
-  if (stRaw.includes(' - ')) { stCode = stRaw.split(' - ')[0].trim(); stName = stRaw.split(' - ')[1].trim(); }
-
-  const ngay = document.getElementById('formNgay').value, tG = document.getElementById('formTuGio').value, dG = document.getElementById('formDenGio').value;
-  if (!ngay || !tG || !dG) return toast('error', 'Điền đủ Ngày Giờ!');
-
-  let sanphams = [];
-  document.querySelectorAll('.sp-input').forEach(inp => {
-    let val = inp.value.trim();
-    if(val) {
-      if(val.includes(' - ')) { let p = val.split(' - '); sanphams.push({ code: p[0].trim(), name: p[1].trim() }); }
-      else { sanphams.push({ code: '', name: val, isManual: true }); }
-    }
-  });
-  if (sanphams.length === 0) return toast('error', 'Chọn ít nhất 1 Sản phẩm!');
-  if (dropSel.nhanvien.length === 0) return toast('error', 'Chọn ít nhất 1 Nhân viên!');
-
-  let decls = DB.get('declarations') || [];
-  if (currentEditId) {
-    let idx = decls.findIndex(x => x.id === currentEditId);
-    decls[idx] = { ...decls[idx], sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: dropSel.nhanvien };
-    await DB.set('declarations', decls); logAction('SỬA ĐƠN', currentEditId); toast('success', 'Đã cập nhật!');
-  } else {
-    decls.unshift({ id: 'BK' + Date.now().toString().slice(-6), authorCode: currentUser.code, authorName: currentUser.name, sieuthiCode: stCode, sieuthiName: stName, ngay, tuGio: tG, denGio: dG, sanphams, nhanvienList: dropSel.nhanvien, status: 'pending', createdAt: new Date().toISOString() });
-    await DB.set('declarations', decls); logAction('TẠO ĐƠN MỚI', ''); toast('success', 'Đã tạo thành công!');
-  }
-  closeModal('createModal'); loadTable();
-}
-
-// ============================================================
-// EXPORT & IMPORT (ADMIN QUẢN LÝ MASTER DATA)
-// ============================================================
-function exportExcel() {
-  const data = filteredDeclarations.map(d => [d.id, d.authorCode + ' - ' + d.authorName, d.sieuthiCode + ' - ' + d.sieuthiName, fDate(d.ngay), d.tuGio, d.denGio, (d.sanphams||[]).map(s=>s.code+' - '+s.name).join('; '), (d.nhanvienList||[]).map(n=>n.code+' - '+n.name).join('; '), d.status, fDate(d.createdAt)]);
-  const ws = XLSX.utils.aoa_to_sheet([['Mã Đơn','Người tạo','Siêu thị','Ngày','Từ giờ','Đến giờ','Danh sách SP','DS Nhân Viên','Trạng thái','Ngày tạo'], ...data]);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KhaiBao"); XLSX.writeFile(wb, `BietKich_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-function downloadTemplateExcel() {
-  const d = [['Siêu thị (Mã - Tên)','Ngày (DD/MM/YYYY)','Từ giờ (HH:mm)','Đến giờ (HH:mm)','Mã SP','Tên SP','DS NV (cách nhau ;)'], ['ST001 - BHX Lê Văn Sỹ','25/12/2026','08:00','20:00','SP001','Bia Tiger','NV001 - Nguyễn Văn A; NV002 - Trần B']];
-  const ws = XLSX.utils.aoa_to_sheet(d); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb, 'Template_KhaiBao.xlsx');
-}
-
-function openImportModal() {
-  document.getElementById('fileImportInput').value = ''; document.getElementById('bulkPreview').innerHTML = ''; document.getElementById('btnImportSubmit').disabled = true; showModal('importModal');
-}
-
-function handleExcelUpload(e) {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = evt => {
-    const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
-    if (rows.length < 2) return toast('error', 'File rỗng!');
-    parseImportKB(rows.slice(1));
-  };
-  r.readAsArrayBuffer(f);
-}
-
-function parseImportKB(rows) {
-  parsedBulkRows = []; let html = '', valid = 0;
-  rows.forEach((r, i) => {
-    if (!r[0]) return;
-    const stRaw = String(r[0]||'').trim(), dt = String(r[1]||'').trim(), t1 = String(r[2]||'').trim(), t2 = String(r[3]||'').trim(), spC = String(r[4]||'').trim().toUpperCase(), spN = String(r[5]||'').trim(), nvRaw = String(r[6]||'').trim();
-    
-    let stCode = '', stName = stRaw;
-    if(stRaw.includes(' - ')) { stCode = stRaw.split(' - ')[0].trim(); stName = stRaw.split(' - ')[1].trim(); }
-    
-    let pDt = dt; 
-    if (dt.includes('/')) { try { const parts = dt.split('/'); if(parts[0].length===4) pDt=`${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`; else pDt=`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`; } catch {} }
-
-    let nvs = nvRaw.split(';').filter(x=>x.trim()).map(n => { n = n.trim(); let code='', name=n; if(n.includes(' - ')) {code=n.split(' - ')[0].trim(); name=n.split(' - ')[1].trim();} return { code, name }; });
-
-    valid++; parsedBulkRows.push({ sieuthiCode: stCode, sieuthiName: stName, ngay: pDt, tuGio: t1, denGio: t2, sanphams: [{code: spC, name: spN}], nhanvienList: nvs });
-    html += `<div style="padding:6px; border-bottom:1px solid #eee;">✅ ${stRaw} | ${pDt} | ${spC}</div>`;
-  });
-  document.getElementById('bulkPreview').innerHTML = `<b>Hợp lệ: <span style="color:green">${valid}</span> dòng</b><br>` + html;
-  document.getElementById('btnImportSubmit').disabled = valid === 0;
-}
-
-async function submitBulkImport() {
-  let d = DB.get('declarations') || [];
-  parsedBulkRows.forEach(r => {
-    d.unshift({ id: 'BK' + Date.now().toString().slice(-8) + Math.random().toString(36).slice(-3), authorCode: currentUser.code, authorName: currentUser.name, sieuthiCode: r.sieuthiCode, sieuthiName: r.sieuthiName, ngay: r.ngay, tuGio: r.tuGio, denGio: r.denGio, sanphams: r.sanphams, nhanvienList: r.nhanvienList, status: 'pending', createdAt: new Date().toISOString() });
-  });
-  await DB.set('declarations', d); logAction('IMPORT KHAI BÁO', parsedBulkRows.length + ' dòng');
-  closeModal('importModal'); toast('success', `Import thành công!`); loadTable();
-}
-
-function openAdminModal() { switchMasterTab('users'); showModal('adminModal'); }
-function switchMasterTab(t) {
-  ['users','sieuthi','sanpham','nhanvien'].forEach(x => { document.getElementById(`masterTab${cap(x)}`).classList.toggle('active', x===t); document.querySelector(`button[onclick*="'${x}'"]`).classList.toggle('active', x===t); });
-  renderMasterList(t);
-}
-
-function renderMasterList(type) {
-  const el = document.getElementById(`master${cap(type)}List`);
-  const items = DB.get(type) || [];
-  let h = '';
-  if (type === 'users') {
-    h = items.map(u => `<tr><td style="padding:8px;">${u.code}</td><td style="padding:8px;">${u.name}</td><td style="padding:8px;color:#888;">${u.pass}</td><td><button class="btn btn-sm btn-danger" onclick="delMaster('users','${u.code}')">Xóa</button></td></tr>`).join('');
-  } else {
-    h = items.map(u => `<tr><td style="padding:8px;">${u.code}</td><td style="padding:8px;">${u.name}</td>${type==='sieuthi'?`<td style="padding:8px;">${u.qltpCode||''}</td>`:''}<td><button class="btn btn-sm btn-danger" onclick="delMaster('${type}','${u.code}')">Xóa</button></td></tr>`).join('');
-  }
-  el.innerHTML = h || '<tr><td colspan="4">Trống</td></tr>';
-}
-
-async function addMasterUser() {
-  const c = document.getElementById('newQltpCode').value.trim().toUpperCase(), n = document.getElementById('newQltpName').value.trim();
-  if(!c || !n) return toast('error', 'Nhập đủ!'); let u = DB.get('users') || []; if(u.find(x => x.code === c)) return toast('error', 'Đã tồn tại!');
-  u.push({ code: c, name: n, pass: '1' }); await DB.set('users', u); toast('success', 'Thêm thành công!'); document.getElementById('newQltpCode').value = ''; document.getElementById('newQltpName').value = ''; renderMasterList('users');
-}
-
-async function addMasterItem(type) {
-  const c = document.getElementById(`new${cap(type)}Code`).value.trim().toUpperCase(), n = document.getElementById(`new${cap(type)}Name`).value.trim();
-  if(!c || !n) return toast('error', 'Nhập đủ!'); let i = DB.get(type) || []; if(i.find(x => x.code === c)) return toast('error', 'Đã tồn tại!');
-  let obj = {code:c, name:n}; if(type==='sieuthi') obj.qltpCode = document.getElementById('newSieuthiQLTP').value.trim().toUpperCase();
-  i.push(obj); await DB.set(type, i); toast('success', 'Đã thêm'); renderMasterList(type); updateDatalists();
-}
-
-async function delMaster(type, code) {
-  if(!confirm('Xóa?')) return; let i = DB.get(type) || []; await DB.set(type, i.filter(x => x.code !== code)); renderMasterList(type); updateDatalists();
-}
-
-function openHistoryModal() {
-  const hist = DB.get('historyLog') || [];
-  document.getElementById('historyBody').innerHTML = hist.map(h => `<tr><td style="padding:8px">${h.time}</td><td>${h.user}</td><td style="color:var(--blue)">${h.action}</td><td>${h.detail||''}</td></tr>`).join('');
-  showModal('historyModal');
-}
-</script>
+<script src="app.js"></script>
 </body>
 </html>
