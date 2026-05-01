@@ -462,21 +462,10 @@ function suggestQLTP(val) {
   suggest.classList.remove('hidden');
 }
 
-// Thêm biến lock vào khu vực GLOBAL STATE (gần currentUser, currentRole...)
 let isLoggingIn = false;
 
-// SỬA selectQLTPLogin — bỏ handleLogin() tự động gọi, chỉ điền form
-function selectQLTPLogin(code, name) {
-  document.getElementById('loginCodeQLTP').value = code;
-  document.getElementById('qltpSuggest').classList.add('hidden');
-  document.getElementById('qltpConfirm').style.display = 'block';
-  document.getElementById('qltpConfirmText').textContent = fCodeName(code, name);
-  // ❌ XÓA DÒNG: handleLogin(); — đây là nguyên nhân spam toast
-}
-
-// SỬA handleLogin — thêm async + lock + fallback fetch
 async function handleLogin() {
-  if (isLoggingIn) return; // chống spam
+  if (isLoggingIn) return; 
   isLoggingIn = true;
 
   const r = document.getElementById('loginRole').value;
@@ -496,22 +485,25 @@ async function handleLogin() {
     if (!code) { isLoggingIn = false; return toast('error', 'Nhập mã QLTP!'); }
 
     let qltps = DB.get('qltpList') || [];
+    const btn = document.querySelector('#grpQLTP .btn-login');
 
-    // ✅ Cache rỗng → fetch từ server (bỏ điều kiện SHEETS.ready)
+    // NẾU CACHE RỖNG -> Kéo danh sách QLTP từ Firebase
     if (qltps.length === 0) {
-      const btn = document.querySelector('#grpQLTP .btn-login');
       if (btn) btn.textContent = '⏳ Đang tải...';
       try {
-        const data = await SHEETS.get({ action: 'lightData' });
-        if (data.sieuthi?.length  > 0) DB.set('sieuthi',  data.sieuthi);
-        if (data.qltpList?.length > 0) {
-          DB.set('qltpList', data.qltpList);
-          qltps = data.qltpList;
+        const snap = await firestore.collection('qltpList').get();
+        qltps = snap.docs.map(doc => doc.data());
+        
+        if (qltps.length > 0) {
+          DB.set('qltpList', qltps);
+        } else {
+          // Trường hợp Admin chưa bơm data lên Firebase
+          throw new Error('Kho dữ liệu QLTP trên hệ thống đang trống!');
         }
       } catch (err) {
         isLoggingIn = false;
         if (btn) btn.textContent = 'VÀO HỆ THỐNG →';
-        return toast('error', '❌ Không kết nối được server. Kiểm tra mạng!');
+        return toast('error', '❌ Lỗi tải dữ liệu: ' + err.message);
       }
       if (btn) btn.textContent = 'VÀO HỆ THỐNG →';
     }
@@ -519,7 +511,7 @@ async function handleLogin() {
     const found = qltps.find(x => String(x.code) === code);
     if (!found) {
       isLoggingIn = false;
-      return toast('error', `Mã QLTP [${code}] không tồn tại!`);
+      return toast('error', `Mã QLTP [${code}] không tồn tại trong hệ thống!`);
     }
     currentUser = { code: found.code, name: found.name, role: 'qltp' };
     currentRole = 'qltp';
@@ -542,13 +534,13 @@ async function finishLogin() {
   document.getElementById('filterDenNgay').value = today;
   logAction('ĐĂNG NHẬP', roleLabel);
 
-  if (SHEETS.ready) {
-    // [B] Smart cache: kiểm tra version trước khi tải
-    await loadLightDataWithCache();
-    // Tải declarations theo QLTP
+  if (FIRE_DB.ready) {
+    // Smart cache: Kéo siêu thị từ Firebase về
+    await loadLightDataWithCache(); 
+    // Tải danh sách đơn đã khai báo
     syncDeclarations();
   } else {
-    SHEETS.setStatus('error', 'Chưa cấu hình');
+    FIRE_DB.setStatus('error', 'Chưa kết nối Firebase');
     loadTable();
   }
 }
