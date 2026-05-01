@@ -13,7 +13,6 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
   body { font-size: 13px; color: var(--text); background: #f0f0f0; overflow-x: hidden; }
 
-  /* MÀN HÌNH LOADING & MỜ */
   #appContainer { display: flex; flex-direction: column; min-height: 100vh; transition: filter 0.3s; }
   #appContainer.blurred { filter: blur(8px); pointer-events: none; user-select: none; height: 100vh; overflow: hidden; }
   #globalLoader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
@@ -32,6 +31,7 @@
   .btn-success { background: var(--green); color: white; }
   .btn-danger { background: var(--red); color: white; }
   .btn-secondary { background: #6c757d; color: white; }
+  .btn-warning { background: var(--yellow); color: #212529; }
   .btn-full { width: 100%; padding: 12px; font-size: 14px; }
 
   /* HEADER & LAYOUT */
@@ -50,7 +50,7 @@
   tbody tr:hover { background: #f8fff9; }
   tbody td { padding: 10px; vertical-align: top; }
 
-  /* TÌM KIẾM NHÂN VIÊN DẠNG TAGS */
+  /* TAGS & SEARCH DROPDOWN */
   .search-drop-wrap { position: relative; width: 100%; }
   .dropdown-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-top: none; max-height: 200px; overflow-y: auto; z-index: 3000; box-shadow: var(--shadow); border-radius: 0 0 6px 6px; }
   .dropdown-list.hidden { display: none; }
@@ -59,11 +59,11 @@
   .selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; background: #e8f5e9; color: #155724; border: 1px solid #c3e6cb; }
   .tag-item .remove { cursor: pointer; font-size: 14px; }
+  .manual-tag { background: var(--yellow-bg); border: 1px solid var(--yellow); color: #6d4c00; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
 
-  /* DÒNG SẢN PHẨM (MULTI-ITEM) */
   .product-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
 
-  /* MODAL CHUNG */
+  /* MODAL */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; }
   .modal-overlay.hidden { display: none; }
   .modal { background: white; border-radius: 8px; width: 650px; max-width: 95vw; box-shadow: 0 10px 30px rgba(0,0,0,0.25); display: flex; flex-direction: column; max-height: 90vh; }
@@ -72,6 +72,8 @@
   .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
   .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
   .modal-footer { padding: 15px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; background: #fafafa; border-radius: 0 0 8px 8px; }
+
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 
   /* TOAST */
   .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
@@ -83,7 +85,6 @@
 </head>
 <body>
 
-<!-- MÀN HÌNH LOADING -->
 <div id="globalLoader">
   <div class="spinner"></div>
   <div id="loaderText" style="font-weight:bold; color:var(--green);">Đang kết nối Database...</div>
@@ -91,7 +92,7 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- MÀN HÌNH ĐĂNG NHẬP -->
+<!-- LOGIN -->
 <div id="loginOverlay" class="hidden">
   <div class="login-box">
     <h2>🦅 KHAI BÁO BIỆT KÍCH</h2>
@@ -102,10 +103,18 @@
         <option value="admin">Admin Hệ Thống</option>
       </select>
     </div>
+    
     <div id="grpQLTP">
-      <div class="form-group"><label>Mã QLTP</label><input type="text" id="loginCode" class="form-control" placeholder="Gõ Mã QLTP..." onkeydown="if(event.key==='Enter') handleLogin()"></div>
+      <div class="form-group">
+        <label>Mã QLTP</label>
+        <div class="search-drop-wrap">
+          <input type="text" id="loginCode" class="form-control search-drop-input" placeholder="Gõ Mã QLTP..." oninput="filterLoginDrop(this.value)" autocomplete="off">
+          <div class="dropdown-list hidden" id="loginDrop-list"></div>
+        </div>
+      </div>
       <div class="form-group"><label>Mật khẩu</label><input type="password" id="loginPassQLTP" class="form-control" placeholder="Mật khẩu" onkeydown="if(event.key==='Enter') handleLogin()"></div>
     </div>
+    
     <div id="grpAdmin" class="hidden">
       <div class="form-group"><label>Mật khẩu Admin</label><input type="password" id="loginPassAdmin" class="form-control" placeholder="Nhập mật khẩu Admin" onkeydown="if(event.key==='Enter') handleLogin()"></div>
     </div>
@@ -113,7 +122,6 @@
   </div>
 </div>
 
-<!-- ĐỔI MẬT KHẨU BẮT BUỘC -->
 <div class="modal-overlay hidden" id="forcePassModal">
   <div class="modal" style="width:400px;">
     <div class="modal-header"><h3>🔑 Đổi mật khẩu bắt buộc</h3></div>
@@ -125,7 +133,7 @@
   </div>
 </div>
 
-<!-- GIAO DIỆN CHÍNH -->
+<!-- MAIN -->
 <div id="appContainer" class="blurred">
   <div class="header">
     <div class="header-title">🦅 BHX - QUẢN LÝ BIỆT KÍCH</div>
@@ -138,7 +146,7 @@
 
   <div class="main">
     <div class="action-bar">
-      <button class="btn btn-primary" id="btnTaoMoi" onclick="openCreateModal()">➕ Khai Báo Biệt Kích</button>
+      <button class="btn btn-primary hidden" id="btnTaoMoi" onclick="openCreateModal()">➕ Khai Báo Biệt Kích</button>
       <div style="margin-left:auto; display:flex; gap:10px;">
         <button class="btn btn-warning hidden" id="btnAdminMaster" onclick="openAdminModal()">⚙ Quản lý Master Data</button>
       </div>
@@ -165,7 +173,7 @@
   </div>
 </div>
 
-<!-- MODAL KHAI BÁO (MULTI-PRODUCT) -->
+<!-- MODAL KHAI BÁO -->
 <div class="modal-overlay hidden" id="createModal">
   <div class="modal">
     <div class="modal-header">
@@ -180,13 +188,12 @@
         <input type="text" id="inputSieuthi" class="form-control" list="listDataST" placeholder="Gõ chọn Mã - Tên Siêu thị">
       </div>
 
-      <div style="display:flex; gap:15px; margin-bottom:15px;">
-        <div style="flex:1;"><label>Ngày <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
-        <div style="flex:1;"><label>Từ giờ <span style="color:red">*</span></label><input type="time" id="formTuGio" class="form-control"></div>
-        <div style="flex:1;"><label>Đến giờ <span style="color:red">*</span></label><input type="time" id="formDenGio" class="form-control"></div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Ngày <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
+        <div class="form-group"><label>Từ giờ <span style="color:red">*</span></label><input type="time" id="formTuGio" class="form-control"></div>
+        <div class="form-group"><label>Đến giờ <span style="color:red">*</span></label><input type="time" id="formDenGio" class="form-control"></div>
       </div>
 
-      <!-- KHU VỰC NHẬP NHIỀU SẢN PHẨM -->
       <div class="form-group" style="background:#f8f9fa; padding:15px; border-radius:6px; border:1px solid var(--border);">
         <label>Sản phẩm Biệt kích <span style="color:red">*</span></label>
         <div id="productRowsContainer"></div>
@@ -196,7 +203,7 @@
       <div class="form-group">
         <label>Nhân viên áp dụng <span style="color:red">*</span></label>
         <div class="search-drop-wrap" id="dropNhanvien">
-          <input type="text" id="inputNhanvien" class="form-control" placeholder="Gõ tìm Nhân viên..." autocomplete="off" oninput="filterNV(this.value)" onfocus="filterNV(this.value)">
+          <input type="text" id="inputNhanvien" class="form-control search-drop-input" placeholder="Gõ tìm Nhân viên..." autocomplete="off" oninput="filterNV(this.value)" onfocus="filterNV(this.value)">
           <div class="dropdown-list hidden" id="dropNhanvien-list"></div>
           <div class="selected-tags" id="nhanvienSelected"></div>
         </div>
@@ -227,35 +234,34 @@
   </div>
 </div>
 
-<!-- DATALIST HTML5 (Cho Siêu thị & Sản phẩm) -->
 <datalist id="listDataST"></datalist>
 <datalist id="listDataSP"></datalist>
 
 <script>
 // ============================================================
-// DATABASE & SYNC (GOOGLE SHEETS)
-// ============================================================
 // ⚠️ QUAN TRỌNG: COPY LINK WEB APP CỦA BẠN DÁN VÀO ĐÂY:
 const API_URL = "https://script.google.com/macros/s/AKfycbx-J8mYleE8VGpZFtFEGNLJpuYJK3yHKIU6bPtSeEWHw7QkgrtdQG8aQEES7UF0DZsdPg/exec"; 
+// ============================================================
 
 let RAM_DB = {};
-let currentUser = null; 
-let currentRole = null;
-let nhanvienTags = []; // Lưu mảng tag nhân viên
+let currentUser = null, currentRole = null;
+let nhanvienTags = [];
 
-function showLoader() { document.getElementById('globalLoader').style.display = 'flex'; }
+function showLoader(txt = 'Đang kết nối Database...') { document.getElementById('loaderText').textContent = txt; document.getElementById('globalLoader').style.display = 'flex'; }
 function hideLoader() { document.getElementById('globalLoader').style.display = 'none'; }
 
 const DB = {
   get: k => RAM_DB[k] ? JSON.parse(JSON.stringify(RAM_DB[k])) : null,
   set: async (k, v) => {
-    RAM_DB[k] = v; // Update local RAM immediately for fast UI
+    RAM_DB[k] = v;
     try {
-      showLoader();
-      await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: k, value: v }) });
+      showLoader('Đang đồng bộ dữ liệu...');
+      let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ key: k, value: v }) });
+      if (!res.ok) throw new Error("Network response was not ok");
       hideLoader();
     } catch (e) {
-      hideLoader(); toast('error', 'Lỗi đồng bộ máy chủ!');
+      hideLoader(); toast('error', 'Lỗi đồng bộ máy chủ! Vui lòng kiểm tra kết nối.');
+      console.error(e);
     }
   }
 };
@@ -263,12 +269,13 @@ const DB = {
 window.onload = async function() {
   try {
     const res = await fetch(API_URL);
+    if (!res.ok) throw new Error("Fetch failed");
     RAM_DB = await res.json();
     initSeedData();
     hideLoader();
     document.getElementById('loginOverlay').classList.remove('hidden');
   } catch(e) {
-    hideLoader(); alert('Lỗi kết nối Server! Chạy offline.');
+    hideLoader(); toast('error','Lỗi kết nối Server! Chạy offline.');
     initSeedData(); document.getElementById('loginOverlay').classList.remove('hidden');
   }
 };
@@ -287,12 +294,26 @@ function showModal(id) { document.getElementById(id).classList.remove('hidden');
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
 // ============================================================
-// LOGIN (CHỈ ADMIN & QLTP)
+// LOGIN 
 // ============================================================
 function toggleLoginFields() {
   const r = document.getElementById('loginRole').value;
   document.getElementById('grpQLTP').classList.toggle('hidden', r !== 'qltp');
   document.getElementById('grpAdmin').classList.toggle('hidden', r !== 'admin');
+}
+
+function filterLoginDrop(q) {
+  q = q.trim().toLowerCase();
+  const listEl = document.getElementById('loginDrop-list');
+  if (!q) { listEl.classList.add('hidden'); return; }
+  
+  const users = DB.get('users') || [];
+  const filtered = users.filter(u => String(u.code).toLowerCase().includes(q) || String(u.name).toLowerCase().includes(q)).slice(0, 10);
+  
+  listEl.innerHTML = filtered.length 
+    ? filtered.map(u => `<div class="dropdown-item" onmousedown="document.getElementById('loginCode').value='${u.code}'; document.getElementById('loginDrop-list').classList.add('hidden');"><span>${u.code} - ${u.name}</span></div>`).join('') 
+    : '<div style="padding:8px;color:#888;">Không tìm thấy</div>';
+  listEl.classList.remove('hidden');
 }
 
 function handleLogin() {
@@ -316,9 +337,7 @@ function handleLogin() {
     if (p === '1') {
       document.getElementById('loginOverlay').classList.add('hidden');
       showModal('forcePassModal');
-    } else {
-      proceedLogin();
-    }
+    } else { proceedLogin(); }
   }
 }
 
@@ -337,13 +356,12 @@ function proceedLogin() {
   
   const roleName = currentRole === 'admin' ? 'ADMIN' : 'QLTP';
   document.getElementById('headerUserName').textContent = `${currentUser.code} - ${currentUser.name}`;
-  document.getElementById('roleStatusText').textContent = `Tài khoản: ${roleName}`;
+  document.getElementById('roleStatusText').textContent = `Phân hệ: ${roleName}`;
   
   document.getElementById('btnAdminMaster').classList.toggle('hidden', currentRole !== 'admin');
-  document.getElementById('btnTaoMoi').classList.toggle('hidden', currentRole === 'admin'); // Admin ko tạo đơn
+  document.getElementById('btnTaoMoi').classList.toggle('hidden', currentRole === 'admin');
   
-  updateDatalists();
-  loadTable();
+  updateDatalists(); loadTable();
 }
 
 function logout() {
@@ -353,47 +371,39 @@ function logout() {
   document.getElementById('loginPassAdmin').value = ''; document.getElementById('loginCode').value = ''; document.getElementById('loginPassQLTP').value = '';
 }
 
-// Cập nhật Datalist HTML5 cho chuẩn Mã - Tên
 function updateDatalists() {
   document.getElementById('listDataST').innerHTML = (DB.get('sieuthi')||[]).map(s => `<option value="${s.code} - ${s.name}">`).join('');
   document.getElementById('listDataSP').innerHTML = (DB.get('sanpham')||[]).map(s => `<option value="${s.code} - ${s.name}">`).join('');
 }
 
 // ============================================================
-// TABLE (HIỂN THỊ DỮ LIỆU)
+// TABLE
 // ============================================================
 function loadTable() {
   let all = DB.get('declarations') || [];
-  // QLTP chỉ thấy bài của mình
   if (currentRole === 'qltp') all = all.filter(d => d.authorCode === currentUser.code);
   
   const tbody = document.getElementById('tableBody');
-  if (!all.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">Chưa có dữ liệu khai báo</td></tr>`; return; }
+  if (!all.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">Chưa có dữ liệu</td></tr>`; return; }
 
   tbody.innerHTML = all.map((d, i) => {
-    // Render list Sản phẩm (Mã - Tên)
     const spHtml = (d.sanphams||[]).map(sp => `• ${sp.code} - ${sp.name}`).join('<br>');
-    // Render list Nhân viên (Mã - Tên)
     const nvHtml = (d.nhanvienList||[]).map(nv => `• ${nv.code} - ${nv.name}`).join('<br>');
-    
-    // Ngày giờ
     let fDate = d.ngay.split('-').reverse().join('/');
-    let timeStr = `${fDate}<br><span style="color:#888;">${d.tuGio} - ${d.denGio}</span>`;
     
     let acts = '';
     if (currentRole === 'admin' || d.authorCode === currentUser.code) {
       acts = `<button class="btn btn-primary btn-sm" onclick="openEditModal('${d.id}')">✏ Sửa</button> 
               <button class="btn btn-danger btn-sm" onclick="deleteRecord('${d.id}')">🗑</button>`;
     }
-
     return `<tr>
-      <td style="color:#999;">${i+1}</td>
+      <td>${i+1}</td>
       <td style="font-weight:600;color:var(--green);">${d.authorCode} - ${d.authorName}</td>
       <td style="font-weight:600;">${d.sieuthiCode} - ${d.sieuthiName}</td>
-      <td>${timeStr}</td>
-      <td>${spHtml}</td>
-      <td>${nvHtml}</td>
-      <td>${acts}</td>
+      <td>${fDate}<br><span style="color:#888;">${d.tuGio} - ${d.denGio}</span></td>
+      <td style="font-size:12px;">${spHtml}</td>
+      <td style="font-size:12px;">${nvHtml}</td>
+      <td style="white-space:nowrap;">${acts}</td>
     </tr>`;
   }).join('');
 }
@@ -406,110 +416,69 @@ async function deleteRecord(id) {
 }
 
 // ============================================================
-// CREATE/EDIT FORM (MULTI-PRODUCT & TAGS)
+// FORM (MULTI-PRODUCT & TAGS)
 // ============================================================
 function openCreateModal() {
   currentEditId = null; nhanvienTags = [];
   document.getElementById('inputSieuthi').value = '';
-  document.getElementById('formNgay').value = '';
-  document.getElementById('formTuGio').value = '';
-  document.getElementById('formDenGio').value = '';
-  document.getElementById('productRowsContainer').innerHTML = '';
-  addProductRow(); // Add 1 row mặc định
+  document.getElementById('formNgay').value = ''; document.getElementById('formTuGio').value = ''; document.getElementById('formDenGio').value = '';
+  document.getElementById('productRowsContainer').innerHTML = ''; addProductRow(); 
   renderNVTags();
-  document.getElementById('createModalTitle').textContent = '➕ Khai báo Biệt Kích';
-  showModal('createModal');
+  document.getElementById('createModalTitle').textContent = '➕ Khai báo Biệt Kích'; showModal('createModal');
 }
 
 function openEditModal(id) {
   const d = (DB.get('declarations') || []).find(x => x.id === id); if (!d) return;
   currentEditId = id; nhanvienTags = [...(d.nhanvienList||[])];
   document.getElementById('inputSieuthi').value = `${d.sieuthiCode} - ${d.sieuthiName}`;
-  document.getElementById('formNgay').value = d.ngay;
-  document.getElementById('formTuGio').value = d.tuGio;
-  document.getElementById('formDenGio').value = d.denGio;
+  document.getElementById('formNgay').value = d.ngay; document.getElementById('formTuGio').value = d.tuGio; document.getElementById('formDenGio').value = d.denGio;
   
-  // Render Multi-products
-  const pCont = document.getElementById('productRowsContainer');
-  pCont.innerHTML = '';
-  if(d.sanphams && d.sanphams.length > 0) {
-    d.sanphams.forEach(sp => addProductRow(`${sp.code} - ${sp.name}`));
-  } else { addProductRow(); }
-  
+  const pCont = document.getElementById('productRowsContainer'); pCont.innerHTML = '';
+  if(d.sanphams && d.sanphams.length > 0) { d.sanphams.forEach(sp => addProductRow(`${sp.code} - ${sp.name}`)); } else { addProductRow(); }
   renderNVTags();
-  document.getElementById('createModalTitle').textContent = '✏ Sửa Khai báo';
-  showModal('createModal');
+  document.getElementById('createModalTitle').textContent = '✏ Sửa Khai báo'; showModal('createModal');
 }
 
-// LOGIC MULTI SẢN PHẨM
 function addProductRow(val = '') {
   const cont = document.getElementById('productRowsContainer');
-  const div = document.createElement('div');
-  div.className = 'product-row';
-  div.innerHTML = `
-    <input type="text" class="form-control sp-input" list="listDataSP" placeholder="Gõ chọn Mã - Tên SP..." value="${val}">
-    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">🗑</button>
-  `;
+  const div = document.createElement('div'); div.className = 'product-row';
+  div.innerHTML = `<input type="text" class="form-control sp-input" list="listDataSP" placeholder="Gõ chọn Mã - Tên SP..." value="${val}"><button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">🗑</button>`;
   cont.appendChild(div);
 }
 
-// LOGIC TÌM KIẾM NHÂN VIÊN LÀM TAG (Do NV quá nhiều không nên xài Datalist HTML5 bị lag)
 function filterNV(query) {
-  const q = query.toLowerCase().trim();
-  const listEl = document.getElementById('dropNhanvien-list');
+  const q = query.toLowerCase().trim(); const listEl = document.getElementById('dropNhanvien-list');
   if(!q) { listEl.classList.add('hidden'); return; }
-  
   const allNV = DB.get('nhanvien') || [];
   const filtered = allNV.filter(n => String(n.name).toLowerCase().includes(q) || String(n.code).toLowerCase().includes(q)).slice(0, 10);
-  
-  if(filtered.length === 0) { listEl.innerHTML = '<div style="padding:10px;color:#888;">Không tìm thấy</div>'; }
-  else {
-    listEl.innerHTML = filtered.map(n => `<div class="dropdown-item" onmousedown="selectNV('${n.code}','${n.name}')"><span>${n.code} - ${n.name}</span></div>`).join('');
-  }
+  listEl.innerHTML = filtered.length ? filtered.map(n => `<div class="dropdown-item" onmousedown="selectNV('${n.code}','${n.name}')"><span>${n.code} - ${n.name}</span></div>`).join('') : '<div style="padding:8px;color:#888;">Không tìm thấy</div>';
   listEl.classList.remove('hidden');
 }
 
 function selectNV(code, name) {
   if(!nhanvienTags.find(x => x.code === code)) { nhanvienTags.push({code, name}); }
-  document.getElementById('inputNhanvien').value = '';
-  document.getElementById('dropNhanvien-list').classList.add('hidden');
-  renderNVTags();
+  document.getElementById('inputNhanvien').value = ''; document.getElementById('dropNhanvien-list').classList.add('hidden'); renderNVTags();
 }
 
 function renderNVTags() {
-  document.getElementById('nhanvienSelected').innerHTML = nhanvienTags.map((n, i) => 
-    `<span class="tag-item">${n.code} - ${n.name} <span class="remove" onclick="nhanvienTags.splice(${i},1);renderNVTags()">×</span></span>`
-  ).join('');
+  document.getElementById('nhanvienSelected').innerHTML = nhanvienTags.map((n, i) => `<span class="tag-item">${n.code} - ${n.name} <span class="remove" onclick="nhanvienTags.splice(${i},1);renderNVTags()">×</span></span>`).join('');
 }
 
-// SUBMIT DATA
 async function submitForm() {
-  // Lấy data Siêu thị
   const stRaw = document.getElementById('inputSieuthi').value;
-  if (!stRaw || !stRaw.includes(' - ')) return toast('error', 'Chọn đúng định dạng Mã - Tên Siêu thị!');
-  const stParts = stRaw.split(' - ');
-  const stCode = stParts[0].trim(); const stName = stParts[1].trim();
+  if (!stRaw || !stRaw.includes(' - ')) return toast('error', 'Chọn Siêu thị!');
+  const stCode = stRaw.split(' - ')[0].trim(); const stName = stRaw.split(' - ')[1].trim();
 
-  // Lấy data Ngày Giờ
-  const ngay = document.getElementById('formNgay').value;
-  const tG = document.getElementById('formTuGio').value;
-  const dG = document.getElementById('formDenGio').value;
-  if (!ngay || !tG || !dG) return toast('error', 'Điền đủ Ngày và Giờ (24h)!');
+  const ngay = document.getElementById('formNgay').value, tG = document.getElementById('formTuGio').value, dG = document.getElementById('formDenGio').value;
+  if (!ngay || !tG || !dG) return toast('error', 'Điền đủ Ngày Giờ!');
 
-  // Lấy danh sách Mảng Sản Phẩm
-  const spInputs = document.querySelectorAll('.sp-input');
   let sanphams = [];
-  for (let inp of spInputs) {
+  document.querySelectorAll('.sp-input').forEach(inp => {
     let val = inp.value.trim();
-    if(val && val.includes(' - ')) {
-      let p = val.split(' - ');
-      sanphams.push({ code: p[0].trim(), name: p[1].trim() });
-    }
-  }
-  if (sanphams.length === 0) return toast('error', 'Cần chọn ít nhất 1 Sản phẩm đúng chuẩn Mã - Tên!');
-
-  // Lấy danh sách Mảng Nhân viên
-  if (nhanvienTags.length === 0) return toast('error', 'Cần chọn ít nhất 1 Nhân viên!');
+    if(val && val.includes(' - ')) { let p = val.split(' - '); sanphams.push({ code: p[0].trim(), name: p[1].trim() }); }
+  });
+  if (sanphams.length === 0) return toast('error', 'Chọn Sản phẩm!');
+  if (nhanvienTags.length === 0) return toast('error', 'Chọn Nhân viên!');
 
   let decls = DB.get('declarations') || [];
   if (currentEditId) {
@@ -524,38 +493,23 @@ async function submitForm() {
 }
 
 // ============================================================
-// ADMIN QUẢN LÝ MASTER DATA (USERS)
+// ADMIN QUẢN LÝ MASTER DATA
 // ============================================================
 function openAdminModal() { renderAdminUsers(); showModal('adminModal'); }
 function renderAdminUsers() {
   const users = DB.get('users') || [];
-  document.getElementById('masterUsersList').innerHTML = users.map(u => 
-    `<tr>
-      <td style="padding:8px;">${u.code}</td><td style="padding:8px;">${u.name}</td>
-      <td style="padding:8px;color:#888;">${u.pass}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteAdminUser('${u.code}')">Xóa</button></td>
-    </tr>`
-  ).join('');
+  document.getElementById('masterUsersList').innerHTML = users.map(u => `<tr><td style="padding:8px;">${u.code}</td><td style="padding:8px;">${u.name}</td><td style="padding:8px;color:#888;">${u.pass}</td><td><button class="btn btn-sm btn-danger" onclick="deleteAdminUser('${u.code}')">Xóa</button></td></tr>`).join('');
 }
 async function addMasterUser() {
-  const c = document.getElementById('newQltpCode').value.trim().toUpperCase();
-  const n = document.getElementById('newQltpName').value.trim();
-  if(!c || !n) return toast('error', 'Nhập đủ mã và tên!');
-  let users = DB.get('users') || [];
-  if(users.find(x => x.code === c)) return toast('error', 'Mã QLTP đã tồn tại!');
-  users.push({ code: c, name: n, pass: '1' });
-  await DB.set('users', users); toast('success', 'Thêm thành công!');
-  document.getElementById('newQltpCode').value = ''; document.getElementById('newQltpName').value = '';
-  renderAdminUsers();
+  const c = document.getElementById('newQltpCode').value.trim().toUpperCase(); const n = document.getElementById('newQltpName').value.trim();
+  if(!c || !n) return toast('error', 'Nhập đủ!');
+  let users = DB.get('users') || []; if(users.find(x => x.code === c)) return toast('error', 'Mã QLTP đã tồn tại!');
+  users.push({ code: c, name: n, pass: '1' }); await DB.set('users', users); toast('success', 'Thêm thành công!');
+  document.getElementById('newQltpCode').value = ''; document.getElementById('newQltpName').value = ''; renderAdminUsers();
 }
-async function deleteAdminUser(code) {
-  if(!confirm('Xóa tài khoản QLTP này?')) return;
-  let users = DB.get('users') || [];
-  await DB.set('users', users.filter(u => u.code !== code)); renderAdminUsers();
-}
+async function deleteAdminUser(code) { if(!confirm('Xóa tài khoản QLTP này?')) return; let users = DB.get('users') || []; await DB.set('users', users.filter(u => u.code !== code)); renderAdminUsers(); }
 
-// Đóng drop khi click ngoài
-document.addEventListener('click', e => { if(!e.target.closest('#dropNhanvien')) document.getElementById('dropNhanvien-list').classList.add('hidden'); });
+document.addEventListener('click', e => { if(!e.target.closest('#dropNhanvien') && !e.target.closest('#loginOverlay')) { const l = document.getElementById('dropNhanvien-list'); if(l) l.classList.add('hidden'); const ll = document.getElementById('loginDrop-list'); if(ll) ll.classList.add('hidden'); } });
 </script>
 </body>
 </html>
