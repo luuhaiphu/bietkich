@@ -109,6 +109,11 @@
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 
+  /* [FIX] 24H TIME SELECT */
+  .time-select-wrap { display:flex; gap:4px; align-items:center; }
+  .time-select-wrap select { flex:1; }
+  .time-colon { font-weight:bold; font-size:16px; color:#444; padding:0 2px; }
+
   /* SEARCHABLE DROPDOWN */
   .search-drop-wrap { position: relative; width: 100%; }
   .search-drop-input { width:100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; }
@@ -122,11 +127,6 @@
   .tag-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; background: var(--green-bg); color: #155724; border: 1px solid #c3e6cb; }
   .tag-item.manual { background: var(--yellow-bg); color: #6d4c00; border: 1px solid var(--yellow); }
   .tag-item .remove { cursor: pointer; font-size: 14px; line-height:1; }
-
-  /* MULTI-PRODUCT ROWS */
-  .product-row { background: #f8fff9; border: 1px solid #c3e6cb; border-radius: 6px; padding: 12px; margin-bottom: 10px; position: relative; }
-  .product-row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 600; color: var(--green); font-size: 13px; }
-  .product-row-body { display: grid; grid-template-columns: 1fr; gap: 8px; }
 
   /* TABS */
   .tabs { display: flex; border-bottom: 2px solid var(--green); margin-bottom: 15px; flex-wrap:wrap; }
@@ -153,15 +153,11 @@
   /* GOOGLE SHEETS CONFIG */
   .sheets-config-card { background: #e8f4f8; border: 1px solid #90caf9; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
   .sheets-config-card h4 { color: #1565c0; margin-bottom: 10px; font-size: 14px; }
-  .sheets-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-  .sheets-status.connected { background: #e8f5e9; color: #2e7d32; }
-  .sheets-status.disconnected { background: #fff3e0; color: #e65100; }
 
   .toast-container { position: fixed; top: 60px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
   .toast { padding: 12px 20px; border-radius: 6px; color: white; font-weight: 600; box-shadow: var(--shadow); animation: slideIn 0.3s; min-width:200px; }
   .toast.success { background: var(--green); } .toast.error { background: var(--red); } .toast.warning { background: var(--orange); color:white; }
   @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
-  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
   .footer { text-align: center; padding: 12px; background: #e9ecef; color: #666; font-size: 12px; margin-top: auto; }
   .empty-state { text-align:center; padding:50px 20px; color:#aaa; }
@@ -292,7 +288,6 @@
       <div style="margin-left:auto; display:flex; gap:6px; flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="openHistoryModal()">📜 Lịch Sử</button>
         <button class="btn btn-sm" style="background:#ff6f00;color:white;" onclick="openManualListModal()">⚠ DS Nhập Tay</button>
-        <!-- ADMIN ONLY BUTTONS -->
         <div id="adminButtons" style="display:none; gap:6px;">
           <button class="btn btn-warning btn-sm" style="color:black;" onclick="openMasterDataModal()">⚙ Master Data</button>
         </div>
@@ -317,7 +312,6 @@
               <th>Siêu thị</th>
               <th>Ngày BK</th>
               <th>Giờ (24h)</th>
-              <!-- [CHANGED] Cột "Sản phẩm" thay bằng "DS Sản phẩm" để hỗ trợ multi-product -->
               <th>DS Sản phẩm</th>
               <th>DS Nhân viên</th>
               <th>Trạng thái</th>
@@ -358,6 +352,7 @@
       <button class="modal-close" onclick="closeModal('createModal')">×</button>
     </div>
     <div class="modal-body">
+
       <!-- Siêu thị -->
       <div class="form-group">
         <label>Siêu thị <span style="color:red">*</span></label>
@@ -369,21 +364,65 @@
         </div>
       </div>
 
-      <!-- Ngày & Giờ -->
+      <!-- [FIX] Ngày & Giờ 24H — Dùng select thay input type=time để tránh AM/PM trên mọi trình duyệt -->
       <div class="form-row-3">
-        <div class="form-group"><label>Ngày Biệt Kích <span style="color:red">*</span></label><input type="date" id="formNgay" class="form-control"></div>
-        <!-- [CHANGED] input type="time" → 24h mặc định, step=60 phút -->
-        <div class="form-group"><label>Từ giờ <small>(05:00–22:00)</small></label><input type="time" id="formTuGio" min="05:00" max="22:00" step="60" class="form-control"></div>
-        <div class="form-group"><label>Đến giờ <small>(05:00–22:00)</small></label><input type="time" id="formDenGio" min="05:00" max="22:00" step="60" class="form-control"></div>
+        <div class="form-group">
+          <label>Ngày Biệt Kích <span style="color:red">*</span></label>
+          <input type="date" id="formNgay" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Từ giờ <small>(05:00–22:00)</small></label>
+          <div class="time-select-wrap">
+            <select id="formTuGioH" class="form-control">
+              <option value="">--</option>
+              <option value="05">05</option><option value="06">06</option><option value="07">07</option>
+              <option value="08">08</option><option value="09">09</option><option value="10">10</option>
+              <option value="11">11</option><option value="12">12</option><option value="13">13</option>
+              <option value="14">14</option><option value="15">15</option><option value="16">16</option>
+              <option value="17">17</option><option value="18">18</option><option value="19">19</option>
+              <option value="20">20</option><option value="21">21</option><option value="22">22</option>
+            </select>
+            <span class="time-colon">:</span>
+            <select id="formTuGioM" class="form-control">
+              <option value="00">00</option><option value="15">15</option>
+              <option value="30">30</option><option value="45">45</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Đến giờ <small>(05:00–22:00)</small></label>
+          <div class="time-select-wrap">
+            <select id="formDenGioH" class="form-control">
+              <option value="">--</option>
+              <option value="05">05</option><option value="06">06</option><option value="07">07</option>
+              <option value="08">08</option><option value="09">09</option><option value="10">10</option>
+              <option value="11">11</option><option value="12">12</option><option value="13">13</option>
+              <option value="14">14</option><option value="15">15</option><option value="16">16</option>
+              <option value="17">17</option><option value="18">18</option><option value="19">19</option>
+              <option value="20">20</option><option value="21">21</option><option value="22">22</option>
+            </select>
+            <span class="time-colon">:</span>
+            <select id="formDenGioM" class="form-control">
+              <option value="00">00</option><option value="15">15</option>
+              <option value="30">30</option><option value="45">45</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      <!-- [NEW] MULTI-PRODUCT SECTION -->
+      <!-- [CHANGED] Sản phẩm: tag-based multi-select (giống DS Nhân viên) -->
       <div class="form-group">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <label style="margin:0;">Danh sách Sản phẩm <span style="color:red">*</span></label>
-          <button class="btn btn-success btn-sm" type="button" onclick="addProductRow()">➕ Thêm sản phẩm</button>
+        <label>Danh sách Sản phẩm <span style="color:red">*</span>
+          <small style="font-weight:400;color:#888;"> — Tìm và chọn, có thể chọn nhiều</small>
+        </label>
+        <div class="search-drop-wrap" id="dropSanpham">
+          <input class="search-drop-input" id="inputSanpham" type="text"
+            placeholder="Gõ Mã hoặc Tên sản phẩm để tìm..." autocomplete="off"
+            oninput="filterDrop('sanpham',this.value)"
+            onfocus="filterDrop('sanpham',this.value)">
+          <div class="dropdown-list hidden" id="dropSanpham-list"></div>
+          <div class="selected-tags" id="sanphamSelected"></div>
         </div>
-        <div id="productRowsContainer"></div>
       </div>
 
       <!-- Nhân viên -->
@@ -472,26 +511,21 @@
           <div class="data-stats"><span class="stat-chip" id="statNV">NV: 0</span></div>
           <div style="margin-top:10px;"><label class="btn btn-import btn-sm" style="cursor:pointer;margin:0;">📂 Chọn File Nhân Viên <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importMasterFile('nhanvien', this)"></label><span id="statusNV" style="font-size:12px;color:#888;margin-left:8px;"></span></div>
         </div>
-        <div style="background:#fff3cd;border-radius:6px;padding:12px;font-size:12px;color:#856404;">
-          💡 Data được lưu vào <b>IndexedDB</b> (local). Sau khi import, nếu đã cấu hình Google Sheets, hấn <b>"Đẩy Master Data lên Sheets"</b> để đồng bộ.
+        <div style="background:#e8f5e9;border:1px solid #c3e6cb;border-radius:6px;padding:12px;font-size:12px;color:#2e7d32;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span>✅ Sau khi import xong, nhấn nút để đẩy toàn bộ master data lên Google Sheets — các QLTP ở máy khác sẽ tự đồng bộ khi đăng nhập.</span>
+          <button class="btn btn-success btn-sm" onclick="pushMasterToSheets()">📤 Đẩy Master Data lên Sheets</button>
         </div>
       </div>
 
-      <!-- [NEW] Tab: Google Sheets Config -->
+      <!-- [CHANGED] Tab: Google Sheets Config — chỉ cần 1 URL -->
       <div id="masterTabSheetsConfig" class="tab-content">
         <div class="sheets-config-card">
-          <h4>🔗 Kết nối Google Sheets</h4>
-          <p style="font-size:12px;color:#555;margin-bottom:12px;">Dữ liệu khai báo sẽ được đồng bộ lên Google Sheets để tất cả user cùng xem.</p>
+          <h4>🔗 Kết nối qua Google Apps Script</h4>
+          <p style="font-size:12px;color:#555;margin-bottom:12px;">
+            Chỉ cần 1 URL Web App — dùng cho cả đọc lẫn ghi. Không cần API Key hay Spreadsheet ID riêng.
+          </p>
           <div class="form-group">
-            <label>Spreadsheet ID</label>
-            <input type="text" id="cfgSheetId" class="form-control" placeholder="Lấy từ URL: .../spreadsheets/d/[ID]/edit">
-          </div>
-          <div class="form-group">
-            <label>API Key (Google Sheets API v4)</label>
-            <input type="text" id="cfgApiKey" class="form-control" placeholder="AIza...">
-          </div>
-          <div class="form-group">
-            <label>Web App URL (Google Apps Script) — Dùng để ghi/xóa dữ liệu</label>
+            <label>Web App URL (Google Apps Script)</label>
             <input type="text" id="cfgWebAppUrl" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
@@ -503,26 +537,24 @@
 
         <!-- Hướng dẫn setup -->
         <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:16px;">
-          <h4 style="margin-bottom:12px;color:#333;">📖 Hướng dẫn Setup (từng bước)</h4>
-          <div style="font-size:12px;line-height:2;color:#444;">
-            <b>BƯỚC 1 — Tạo Google Sheet</b><br>
-            Vào <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> → Tạo spreadsheet mới.<br>
-            Tạo các sheet (tab) với tên chính xác: <code>declarations</code> | <code>sieuthi</code> | <code>sanpham</code> | <code>nhanvien</code> | <code>qltp</code><br><br>
+          <h4 style="margin-bottom:12px;color:#333;">📖 Hướng dẫn Setup (3 bước)</h4>
+          <div style="font-size:12px;line-height:2.2;color:#444;">
 
-            <b>BƯỚC 2 — Lấy Spreadsheet ID</b><br>
-            Từ URL: <code>https://docs.google.com/spreadsheets/d/<b style="color:red">[ID Ở ĐÂY]</b>/edit</code><br>
-            Copy phần ID và dán vào ô "Spreadsheet ID" bên trên.<br><br>
+            <b>BƯỚC 1 — Tạo Google Spreadsheet</b><br>
+            Vào <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> → Tạo file mới.<br>
+            Đặt tên file tùy ý (VD: <i>BHX Biệt Kích DB</i>). Giữ nguyên, không cần tạo thêm sheet con.<br><br>
 
-            <b>BƯỚC 3 — Tạo API Key (chỉ dùng để ĐỌC)</b><br>
-            Vào <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → Tạo project → Enable <b>Google Sheets API</b> →
-            <b>Credentials</b> → <b>Create API Key</b> → Restrict: Sheets API.<br>
-            ⚠️ Sheet cần <b>Share → Anyone with link → Viewer</b>.<br><br>
+            <b>BƯỚC 2 — Tạo Apps Script & Deploy</b><br>
+            Trong Spreadsheet → menu <b>Tiện ích mở rộng (Extensions) → Apps Script</b><br>
+            Xóa toàn bộ code cũ → nhấn nút bên dưới để copy code mới → dán vào → <b>Lưu (Ctrl+S)</b><br>
+            Nhấn <b>Triển khai (Deploy) → Triển khai mới → Web App</b><br>
+            &nbsp;&nbsp;• <b>Thực thi với tư cách:</b> Tôi (Me)<br>
+            &nbsp;&nbsp;• <b>Ai có quyền truy cập:</b> Bất kỳ ai (Anyone)<br>
+            → <b>Triển khai</b> → Cấp quyền nếu được hỏi → Copy URL Web App<br><br>
 
-            <b>BƯỚC 4 — Tạo Apps Script (để GHI dữ liệu)</b><br>
-            Trong Sheet → menu <b>Extensions → Apps Script</b> → xóa code cũ → dán code từ nút bên dưới → <b>Deploy → New deployment → Web App → Execute as: Me → Who has access: Anyone</b> → Copy URL dán vào "Web App URL".<br><br>
-
-            <b>BƯỚC 5 — Đặt quyền Sheet Public (Read)</b><br>
-            Sheet → Share → Change to "Anyone with the link can view".<br>
+            <b>BƯỚC 3 — Dán URL vào ô bên trên & Lưu</b><br>
+            Dán URL vừa copy vào ô "Web App URL" → nhấn "Lưu cấu hình" → "Test kết nối".<br>
+            Khi test thành công, nhấn <b>"Đẩy Master Data lên Sheets"</b> để đẩy dữ liệu lên.
           </div>
           <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="copyAppsScriptCode()">📋 Copy Apps Script Code</button>
