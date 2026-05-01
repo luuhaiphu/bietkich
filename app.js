@@ -99,50 +99,40 @@ function saveToIDB(key, value) {
 }
 
 // ============================================================
-// [A] GOOGLE SHEETS API v3 — chỉ 1 Web App URL
+// [A] FIREBASE FIRESTORE API
 // ============================================================
-// ✅ Thêm dòng này, thay YOUR_ID bằng ID thật của bạn
-const DEFAULT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxGfxHkj8UCXdjdOE4mXfdsIKAQgQ6c8XeUkyn7k-A19uyLJf7xEmRP1sjdKfyEjr1LLg/exec';
-const SHEETS = {
-  get cfg() {
-  const saved = DB.get('sheetsConfig') || {};
-  if (!saved.webAppUrl) saved.webAppUrl = DEFAULT_WEBAPP_URL;
-  return saved;
-},
-  get ready()    { return !!(this.cfg.webAppUrl); },
-  get canWrite() { return !!(this.cfg.webAppUrl); },
+const firebaseConfig = {
+  apiKey: "AIzaSyDRYnlFYw3NevZBykDX-PnMcujjSvHhObU",
+  authDomain: "hai-phu.firebaseapp.com",
+  projectId: "hai-phu",
+  storageBucket: "hai-phu.firebasestorage.app",
+  messagingSenderId: "963849762524",
+  appId: "1:963849762524:web:1d3eddd0d8c77e2fe6a619",
+  measurementId: "G-0Q1SSJ23L0"
+};
 
+// Khởi tạo Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const firestore = firebase.firestore();
+
+// Bật tính năng Offline Cache siêu xịn của Firebase
+firestore.enablePersistence().catch(function(err) {
+  console.warn("Firebase Offline Cache error:", err.code);
+});
+
+// Object FIRE_DB thay thế cho SHEETS cũ
+const FIRE_DB = {
+  ready: true, // Firebase luôn sẵn sàng khi load xong
+  canWrite: true,
+  
   setStatus(state, msg) {
     const dot = document.getElementById('syncDot');
     const txt = document.getElementById('syncText');
     if (!dot || !txt) return;
     dot.className = 'sync-dot' + (state==='syncing' ? ' syncing' : state==='error' ? ' error' : '');
     txt.textContent = msg;
-  },
-
-  // [A] GET: ?action=...
-  async get(params) {
-    if (!this.ready) return null;
-    const qs  = new URLSearchParams({ ...params }).toString();
-    const url = `${this.cfg.webAppUrl}?${qs}`;
-    const res = await fetch(url, { redirect: 'follow' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.msg || 'API error');
-    return data;
-  },
-
-  // [A] POST: action trong body
-  async post(action, payload) {
-    if (!this.canWrite) throw new Error('Chưa cấu hình Web App URL!');
-    const res = await fetch(this.cfg.webAppUrl, {
-      method:   'POST',
-      redirect: 'follow',
-      headers:  { 'Content-Type': 'text/plain' },
-      body:     JSON.stringify({ action, ...payload })
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
   }
 };
 
